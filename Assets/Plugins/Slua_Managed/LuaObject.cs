@@ -989,21 +989,7 @@ return index
 					&& matchType(l, from + 9, t10);
 		}
 
-        public static bool matchType(IntPtr l, int total, int from, params Type[] t)
-        {
-            if (total - from + 1 != t.Length)
-                return false;
-
-            for (int i = 0; i < t.Length; ++i)
-            {
-                if (!matchType(l, from + i, t[i]))
-                    return false;
-            }
-
-            return true;
-        }
-
-        public static bool matchType(IntPtr l, int total, int from, ParameterInfo[] pars)
+		public static bool matchType(IntPtr l, int total, int from, ParameterInfo[] pars)
 		{
 			if (total - from + 1 != pars.Length)
 				return false;
@@ -1074,24 +1060,135 @@ return index
 				return ta!=null;
 			}
 		}
+        static object[][] _cacheArrays;
+        
+        static public object[] getObjectArrayByCount(int count)
+        {
+            return new object[count];
+            //下面的优化有bug，外部有可能保留了数组的引用（例如闭包）。先保留原设计，
 
-		static public bool checkParams<T>(IntPtr l, int p, out T[] pars) where T:class
+            if (_cacheArrays == null)
+                _cacheArrays = new object[20][];
+            while (count >= _cacheArrays.Length)
+            {
+                object[][] temp = new object[_cacheArrays.Length * 2][];
+                Array.Copy(_cacheArrays, temp, _cacheArrays.Length);
+                _cacheArrays = temp;
+            }//理论上不会触发多次循环。甚至不会触发这段代码。
+
+            if (_cacheArrays[count] == null)
+                _cacheArrays[count] = new object[count];
+            return _cacheArrays[count];
+        }
+        static public bool checkCacheParams<T>(IntPtr l, int p, out T[] pars) where T : class
+        {
+            int top = LuaDLL.lua_gettop(l);
+            if (top - p >= 0)
+            {
+                int count = top - p + 1;
+                if (typeof(T) == typeof(System.Object))
+                {
+                    pars = (T[])getObjectArrayByCount(count);
+                }
+                else
+                {
+                    pars = new T[count];
+                }
+
+                for (int n = p, k = 0; n <= top; n++, k++)
+                {
+                    checkType(l, n, out pars[k]);
+                }
+                return true;
+            }
+            if (typeof(T) == typeof(System.Object))
+            {
+                pars = (T[])getObjectArrayByCount(0);
+            }
+            else
+            {
+                pars = new T[0];
+            }
+            return true;
+        }
+        static public bool checkParams<T>(IntPtr l, int p, out T[] pars) where T:class
 		{
 			int top = LuaDLL.lua_gettop(l);
 			if (top - p >= 0)
 			{
-				pars = new T[top - p + 1];
+                int count = top - p + 1;
+                if (typeof(T) == typeof(System.Object))
+                {
+                    pars = (T[])getObjectArrayByCount(count);
+                }
+                else
+                {
+                    pars = new T[count];
+                }
+                
 				for (int n = p, k = 0; n <= top; n++, k++)
 				{
 					checkType(l, n, out pars[k]);
 				}
 				return true;
 			}
-			pars = new T[0];
+            if (typeof(T) == typeof(System.Object))
+            {
+                pars = (T[])getObjectArrayByCount(0);
+            }
+            else
+            {
+                pars = new T[0];
+            }
 			return true;
 		}
+        static public bool checkCacheValueParams<T>(IntPtr l, int p, out T[] pars) where T : struct
+        {
+            int top = LuaDLL.lua_gettop(l);
+            if (top - p >= 0)
+            {
+                pars = new T[top - p + 1];
+                for (int n = p, k = 0; n <= top; n++, k++)
+                {
+                    checkValueType(l, n, out pars[k]);
+                }
+                return true;
+            }
+            pars = new T[0];
+            return true;
+        }
 
-		static public bool checkValueParams<T>(IntPtr l, int p, out T[] pars) where T : struct
+        static public bool checkCacheParams(IntPtr l, int p, out int[] pars)
+        {
+            int top = LuaDLL.lua_gettop(l);
+            if (top - p >= 0)
+            {
+                pars = new int[top - p + 1];
+                for (int n = p, k = 0; n <= top; n++, k++)
+                {
+                    checkValueType(l, n, out pars[k]);
+                }
+                return true;
+            }
+            pars = new int[0];
+            return true;
+        }
+        static public bool checkCacheParams(IntPtr l, int p, out float[] pars)
+        {
+            int top = LuaDLL.lua_gettop(l);
+            if (top - p >= 0)
+            {
+                pars = new float[top - p + 1];
+                for (int n = p, k = 0; n <= top; n++, k++)
+                {
+                    checkValueType(l, n, out pars[k]);
+                }
+                return true;
+            }
+            pars = new float[0];
+            return true;
+        }
+        static public bool checkValueParams<T>(IntPtr l, int p, out T[] pars) where T : struct
 		{
 			int top = LuaDLL.lua_gettop(l);
 			if (top - p >= 0)
@@ -1171,17 +1268,10 @@ return index
 			object obj = checkVar(l, p);
             try
             {
-                if (t.IsEnum)
-                {
-                    // double to int
-                    var number = Convert.ChangeType(obj, typeof(int));
-                    return Enum.ToObject(t, number);
-                }
-
-                return obj == null ? null : Convert.ChangeType(obj, t);
+                return obj==null?null:Convert.ChangeType(obj, t);
             }
-            catch(Exception e) {
-				throw new Exception(string.Format("parameter {0} expected {1}, got {2}, exception: {3}", p, t.Name, obj == null ? "null" : obj.GetType().Name, e.Message));
+            catch(Exception) {
+				throw new Exception(string.Format("parameter {0} expected {1}, got {2}", p, t.Name, obj == null ? "null" : obj.GetType().Name));
             }
         }
 
@@ -1192,8 +1282,14 @@ return index
 			{
 				case LuaTypes.LUA_TNUMBER:
 					{
-						return LuaDLL.lua_tonumber(l, p);
-					}
+#if LUA_5_3
+                        if (LuaDLL.lua_isinteger(l, p) != 0) {
+                            long n = LuaDLL.lua_tolong(l, p);
+                            return n;
+                        }
+#endif
+                        return LuaDLL.lua_tonumber(l, p);
+                    }
 				case LuaTypes.LUA_TSTRING:
 					{
 						return LuaDLL.lua_tostring(l, p);

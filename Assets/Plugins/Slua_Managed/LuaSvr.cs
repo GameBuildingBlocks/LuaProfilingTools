@@ -52,13 +52,20 @@ namespace SLua
 #endif
 		int errorReported = 0;
 		public bool inited = false;
-
-		public LuaSvr()
+        bool editor = false;
+		public LuaSvr(bool editor = false)
 		{
-			LuaState luaState = new LuaState();
-            this.luaState = luaState;
-		}
+            this.editor = editor;
+            if (editor)
+                return;
 
+#if !SLUA_STANDALONE
+            GameObject go = new GameObject("LuaSvrProxy");
+			lgo = go.AddComponent<LuaSvrGameObject>();
+			GameObject.DontDestroyOnLoad(go);
+#endif
+		}
+       
 		private volatile int bindProgress = 0;
 		private void doBind(object state)
 		{
@@ -162,38 +169,32 @@ namespace SLua
 			complete();
 		}
 
-		void doinit(IntPtr L,LuaSvrFlag flag)
+		void doinit(IntPtr L,LuaSvrFlag flag, bool useTick)
 		{
+            if (!editor)
+            {
 #if !SLUA_STANDALONE
-			LuaTimer.reg(L);
-#if UNITY_EDITOR
-            if (UnityEditor.EditorApplication.isPlaying)
+                LuaTimer.reg(L);
+                LuaCoroutine.reg(L, lgo);
 #endif
-            LuaCoroutine.reg(L, lgo);
-#endif
-			Helper.reg(L);
-			LuaValueType.reg(L);
+                Helper.reg(L);
+                LuaValueType.reg(L);
+            }
 			
 			if((flag&LuaSvrFlag.LSF_EXTLIB)!=0)
 				LuaDLL.luaS_openextlibs(L);
 			if((flag&LuaSvrFlag.LSF_3RDDLL)!=0)
 				Lua3rdDLL.open(L);
-
+            if (!editor)
+            {
 #if !SLUA_STANDALONE
-#if UNITY_EDITOR
-		    if (UnityEditor.EditorApplication.isPlaying)
-		    {
+                lgo.state = luaState;
+            if (useTick)
+                lgo.onUpdate = this.tick;
+			lgo.init();
 #endif
-            lgo.state = luaState;
-            lgo.onUpdate = this.tick;
-            lgo.init();
-#if UNITY_EDITOR
-		    }
-
-#endif
-#endif
-
-                inited = true;
+            }
+            inited = true;
 		}
 
 		void checkTop(IntPtr L)
@@ -205,59 +206,38 @@ namespace SLua
 			}
 		}
 
-		public void init(Action<int> tick,Action complete,LuaSvrFlag flag=LuaSvrFlag.LSF_BASIC)
+		public void init(Action<int> tick,Action complete,LuaSvrFlag flag=LuaSvrFlag.LSF_BASIC, bool useTick = true)
         {
-#if !SLUA_STANDALONE
-		    if (lgo == null
-#if UNITY_EDITOR
-                && UnityEditor.EditorApplication.isPlaying
-#endif
-                )
-		    {
-                GameObject go = new GameObject("LuaSvrProxy");
-                lgo = go.AddComponent<LuaSvrGameObject>();
-                GameObject.DontDestroyOnLoad(go);
-		        
-		    }
-#endif
-            IntPtr L = luaState.L;
+			LuaState luaState = new LuaState();
+
+			IntPtr L = luaState.L;
 			LuaObject.init(L);
 
-#if SLUA_STANDALONE
+//#if SLUA_STANDALONE
             doBind(L);
-            doinit(L, flag);
-		    complete();
+		    this.luaState = luaState;
+            doinit(L, flag, useTick);
+            if (complete != null)
+                complete();
             checkTop(L);
-#else
+//#else
 			
 
 			// be caurefull here, doBind Run in another thread
 			// any code access unity interface will cause deadlock.
 			// if you want to debug bind code using unity interface, need call doBind directly, like:
-			// doBind(L);
-#if UNITY_EDITOR
-		    if (!UnityEditor.EditorApplication.isPlaying)
-		    {
-		        doBind(L);
-		        doinit(L, flag);
-		        complete();
-		        checkTop(L);
-		    }
-		    else
-		    {
-#endif
-		        ThreadPool.QueueUserWorkItem(doBind, L);
-		        lgo.StartCoroutine(waitForBind(tick, () =>
-		        {
-		            doinit(L, flag);
-		            complete();
-		            checkTop(L);
-		        }));
-#if UNITY_EDITOR
-		    }
-#endif
-#endif
-            }
+			//doBind(L);
+//			ThreadPool.QueueUserWorkItem(doBind, L);
+
+//			lgo.StartCoroutine(waitForBind(tick, () =>
+//			{
+//				this.luaState = luaState;
+//				doinit(L,flag);
+//				complete();
+//				checkTop(L);
+//			}));
+//#endif
+        }
 
 		public object start(string main)
 		{

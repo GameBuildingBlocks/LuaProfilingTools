@@ -84,7 +84,7 @@ namespace SLua
 			Dispose(true);
 			GC.SuppressFinalize(this);
 		}
-
+        
 		public virtual void Dispose(bool disposeManagedResources)
 		{
 			if (valueref != 0)
@@ -298,9 +298,13 @@ namespace SLua
 
 	public class LuaTable : LuaVar, IEnumerable<LuaTable.TablePair>
 	{
+        public class TablePair2//只有editor在用，struct改class
+        {
+            public object key;
+            public object value;
+        }
 
-
-		public struct TablePair
+        public struct TablePair//只有editor在用，struct改class
 		{
 			public object key;
 			public object value;
@@ -314,8 +318,13 @@ namespace SLua
 			: base(l, r)
 		{
 		}
-
-		public LuaTable(LuaState state)
+        public void Renew()
+        {
+            Dispose(true);
+            LuaDLL.lua_newtable(L);
+            valueref = LuaDLL.luaL_ref(L, LuaIndexes.LUA_REGISTRYINDEX);
+        }
+        public LuaTable(LuaState state)
 			: base(state, 0)
 		{
 
@@ -849,7 +858,7 @@ end
 		static public void pushcsfunction(IntPtr L, LuaCSFunction function)
 		{
 			LuaDLL.lua_getref(L, get(L).PCallCSFunctionRef);
-			LuaDLL.lua_pushcclosure(L, function, 0);
+			LuaDLL.lua_pushcclosure(L, Marshal.GetFunctionPointerForDelegate(function), 0);
 			LuaDLL.lua_call(L, 1, 1);
 		}
 
@@ -912,27 +921,9 @@ end
 			return null;
 		}
 
-	    /// <summary>
-	    /// Ensure remove BOM from bytes
-	    /// </summary>
-	    /// <param name="bytes"></param>
-	    /// <returns></returns>
-	    public static byte[] CleanUTF8Bom(byte[] bytes)
-	    {
-            if (bytes.Length > 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
-            {
-                var oldBytes = bytes;
-                bytes = new byte[bytes.Length - 3];
-                Array.Copy(oldBytes, 3, bytes, 0, bytes.Length);
-            }
-            return bytes;
-	    }
-
 		public bool doBuffer(byte[] bytes, string fn, out object ret)
-        {        
-            // ensure no utf-8 bom, LuaJIT can read BOM, but Lua cannot!
-		    bytes = CleanUTF8Bom(bytes);
-            ret = null;
+		{
+			ret = null;
 			int errfunc = LuaObject.pushTry(L);
 			if (LuaDLL.luaL_loadbuffer(L, bytes, bytes.Length, fn) == 0)
 			{
@@ -1163,7 +1154,6 @@ end
 				cnt = refQueue.Count;
 			}
 
-			var l = L;
 			for (int n = 0; n < cnt; n++)
 			{
 				UnrefPair u;
@@ -1171,7 +1161,7 @@ end
 				{
 					u = refQueue.Dequeue();
 				}
-				u.act(l, u.r);
+				u.act(L, u.r);
 			}
 		}
 	}

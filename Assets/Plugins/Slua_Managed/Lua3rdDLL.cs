@@ -17,6 +17,7 @@ namespace SLua{
 		}
 		
 		public static void open(IntPtr L){
+            // 没用的东西 直接注释 Modify By NiuNiu
 			var typenames = Lua3rdMeta.Instance.typesWithAttribtues;
 			var assemblys = AppDomain.CurrentDomain.GetAssemblies();
 			Assembly assembly = null;
@@ -52,10 +53,11 @@ namespace SLua{
 			}
 			
 			LuaDLL.lua_settop(L, 0);
-		}
+            
+        }
 
 
-		[AttributeUsage(AttributeTargets.Method)]
+        [AttributeUsage(AttributeTargets.Method)]
 		public class LualibRegAttribute:System.Attribute{
 
 			public string luaName;

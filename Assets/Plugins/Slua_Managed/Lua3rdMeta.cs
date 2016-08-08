@@ -28,6 +28,7 @@ namespace SLua{
 		#if UNITY_EDITOR
 
 		public void ReBuildTypes(){
+            // 没用的东西 直接注释 等稳定以后再删除 Modify By NiuNiu
 			typesWithAttribtues.Clear();
 			Assembly assembly = null;
 			foreach(var assem in AppDomain.CurrentDomain.GetAssemblies()){
@@ -48,6 +49,7 @@ namespace SLua{
 					} 
 				}
 			}
+           
 		}
 
 		#endif

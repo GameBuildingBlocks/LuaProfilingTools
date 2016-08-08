@@ -38,13 +38,13 @@ namespace SLua
         /// <summary>
         /// A cache list of MemberInfo, for reflection optimize
         /// </summary>
-        static Dictionary<Type, Dictionary<string, List<MemberInfo>>> cachedMemberInfos = new Dictionary<Type, Dictionary<string, List<MemberInfo>>>();
+        static Dictionary<Type, Dictionary<string, MemberInfo[]>> cachedMemberInfos = new Dictionary<Type, Dictionary<string, MemberInfo[]>>();
 
         class MethodWrapper
         {
             object self;
-            IList<MemberInfo> mis;
-            public MethodWrapper(object self, IList<MemberInfo> mi)
+            MemberInfo[] mis;
+            public MethodWrapper(object self, MemberInfo[] mi)
             {
                 this.self = self;
                 this.mis = mi;
@@ -85,12 +85,6 @@ namespace SLua
                                 return str;
                         }
                         break;
-                    case "Decimal":
-                        return (decimal)LuaDLL.lua_tointeger(l, p);
-                    case "Int64":
-                        return (long)LuaDLL.lua_tointeger(l, p);
-                    case "UInt64":
-                        return (ulong)LuaDLL.lua_tointeger(l, p);
                     case "Int32":
                         return (int)LuaDLL.lua_tointeger(l, p);
                     case "UInt32":
@@ -100,16 +94,11 @@ namespace SLua
                     case "Double":
                         return (double)LuaDLL.lua_tonumber(l, p);
                     case "Boolean":
-                        return (bool)LuaDLL.lua_toboolean(l, p);
-                    case "Byte":
-                        return (byte)LuaDLL.lua_tointeger(l, p);
-                    case "UInt16":
-                        return (ushort)LuaDLL.lua_tointeger(l, p);
-                    case "Int16":
-                        return (short)LuaDLL.lua_tointeger(l, p);
+                        return LuaDLL.lua_toboolean(l, p);
+
                     default:
                         // Enum convert
-                        if (t.IsEnum)
+                        if (t.BaseType == typeof (System.Enum))
                         {
                             var num = LuaDLL.lua_tointeger(l, p);
                             return Enum.ToObject(t, num);
@@ -139,16 +128,16 @@ namespace SLua
 
             public int invoke(IntPtr l)
             {
-                for (int k = 0; k < mis.Count; k++)
+                for (int k = 0; k < mis.Length; k++)
                 {
                     MethodInfo m = (MethodInfo)mis[k];
                     if (matchType(l, 2, m.GetParameters(), m.IsStatic))
                     {
-                        return forceInvoke(l, m);
+                        return forceInvoke(l,m);
                     }
                 }
                 // cannot find best match function, try call first one
-                return forceInvoke(l, mis[0] as MethodInfo);
+                return forceInvoke(l, mis[0]as MethodInfo);
                 //return error(l, "Can't find valid overload function {0} to invoke or parameter type mis-matched.", mis[0].Name);
             }
 
@@ -219,12 +208,9 @@ namespace SLua
 
             if (self is IDictionary)
             {
-                var dict = self as IDictionary;
-                
-                object v = dict[key];
-                pushValue(l, true);
+                object v = (self as IDictionary)[key];
                 pushVar(l, v);
-                return 2;
+                return 1;
             }
             return 0;
 
@@ -256,10 +242,14 @@ namespace SLua
                 }
             }
 
-            IndexProperty:
-
+        IndexProperty:
+            //MemberInfo[] mis = t.GetMember(key, BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            //if (mis.Length == 0)
+            //{
+            //    return error(l, "Can't find " + key);
+            //}
             var mis = GetCacheMembers(t, key);
-            if (mis == null || mis.Count == 0)
+            if (mis == null || mis.Length == 0)
             {
                 return error(l, "Can't find " + key);
             }
@@ -292,55 +282,33 @@ namespace SLua
         }
 
         /// <summary>
-        /// Collect Type Members, including base type
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="key"></param>
-        /// <param name="memberList"></param>
-        static void CollectTypeMembers(Type type, ref Dictionary<string, List<MemberInfo>> membersMap)
-        {
-            var mems = type.GetMembers(BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly); // GetMembers can get basetType's members, but GetMember cannot
-            for (var i = 0; i < mems.Length; i++)
-            {
-                var mem = mems[i];
-                List<MemberInfo> members;
-                if (!membersMap.TryGetValue(mem.Name, out members))
-                {
-                    members = membersMap[mem.Name] = new List<MemberInfo>();
-                }
-                members.Add(mem);
-            }
-            if (type.BaseType != null)
-            {
-                CollectTypeMembers(type.BaseType, ref membersMap);
-            }
-
-        }
-        /// <summary>
         /// Get Member from Type, use reflection, use cache Dictionary
         /// </summary>
         /// <param name="type"></param>
         /// <param name="key"></param>
         /// <returns></returns>
-        static IList<MemberInfo> GetCacheMembers(Type type, string key)
+        static MemberInfo[] GetCacheMembers(Type type, string key)
         {
-            Dictionary<string, List<MemberInfo>> cache;
+            Dictionary<string, MemberInfo[]> cache;
             if (!cachedMemberInfos.TryGetValue(type, out cache))
             {
-                cachedMemberInfos[type] = cache = new Dictionary<string, List<MemberInfo>>();
-                // Get Member including all parent fields
-                CollectTypeMembers(type, ref cache);
+                cachedMemberInfos[type] = cache = new Dictionary<string, MemberInfo[]>();
             }
-            return cache[key];
+
+            MemberInfo[] memberInfos;
+            if (!cache.TryGetValue(key, out memberInfos))
+            {
+                cache[key] = memberInfos = type.GetMember(key, BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            }
+            return memberInfos;
         }
 
         static int newindexString(IntPtr l, object self, string key)
         {
             if (self is IDictionary)
             {
-                var dictType = getType(self);
-                var valueType = dictType.GetGenericArguments()[1];
-                (self as IDictionary)[key] = checkVar(l, 3, valueType);
+                (self as IDictionary)[key] = checkVar(l, 3);
                 return ok(l);
             }
 
@@ -352,7 +320,7 @@ namespace SLua
             //}
 
             var mis = GetCacheMembers(t, key);
-            if (mis == null || mis.Count == 0)
+            if (mis == null)
             {
                 return error(l, "Can't find " + key);
             }
@@ -395,26 +363,19 @@ namespace SLua
             }
             else if (self is IDictionary)
             {
-                var dict = (IDictionary)self;// as IDictionary;
                 //support enumerate key
-                object dictKey = index;
                 if (type.IsGenericType)
                 {
-                    Type keyType = type.GetGenericArguments()[0];
-
-                    if (keyType.IsEnum)
+                    Type t = type.GetGenericArguments()[0];
+                    if (t.IsEnum)
                     {
                         pushValue(l, true);
-                        pushVar(l, dict[Enum.Parse(keyType, dictKey.ToString())]);
+                        pushVar(l, (self as IDictionary)[Enum.Parse(t, index.ToString())]);
                         return 2;
                     }
-
-                    if (keyType != dictKey.GetType())
-                        dictKey = Convert.ChangeType(dictKey, keyType); // if key is not int but ushort/uint,  IDictionary will cannot find the key and return null!
                 }
-                
                 pushValue(l, true);
-                pushVar(l, dict[dictKey]);
+                pushVar(l, (self as IDictionary)[index]);
                 return 2;
             }
             return 0;
@@ -435,18 +396,13 @@ namespace SLua
             }
             else if (self is IDictionary)
             {
-                Type keyType = type.GetGenericArguments()[0];
-                object dictKey = index;
-                if (keyType != dictKey.GetType())
-                    dictKey = Convert.ChangeType(dictKey, keyType); // if key is not int but ushort/uint,  IDictionary will cannot find the key and return null!
-
                 if (type.IsGenericType)
                 {
                     Type t = type.GetGenericArguments()[1];
-                    (self as IDictionary)[dictKey] = Convert.ChangeType(checkVar(l, 3), t);
+                    (self as IDictionary)[index] = Convert.ChangeType(checkVar(l, 3), t);
                 }
                 else
-                    (self as IDictionary)[dictKey] = checkVar(l, 3);
+                    (self as IDictionary)[index] = checkVar(l, 3);
             }
 
             pushValue(l, true);
@@ -457,15 +413,10 @@ namespace SLua
         {
             if (self is IDictionary)
             {
-                var dict = self as IDictionary;
-                var dictType = getType(self);
-                var valueType = dictType.GetGenericArguments()[1];
-
-                var key = k;
-                var value = Convert.ChangeType(v, valueType);
-                dict[key] = value;
+                (self as IDictionary)[k] = v;
             }
-            return ok(l);
+            pushValue(l, true);
+            return 1;
         }
 
         [MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]

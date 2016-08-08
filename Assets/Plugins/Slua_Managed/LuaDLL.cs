@@ -261,7 +261,9 @@ namespace LuaInterface
         {
             return (int)lua_tointegerx(luaState, index, IntPtr.Zero);
         }
-
+        public static Int64 lua_tolong(IntPtr luaState, int index) {
+            return lua_tointegerx(luaState, index, IntPtr.Zero);
+        }
 
         public static int luaL_loadbuffer(IntPtr luaState, byte[] buff, int size, string name)
         {
@@ -285,8 +287,13 @@ namespace LuaInterface
 
         public static Int64 luaL_checkinteger(IntPtr luaState, int stackPos) {
 			luaL_checktype(luaState, stackPos, LuaTypes.LUA_TNUMBER);
-			return lua_tointegerx(luaState, stackPos, IntPtr.Zero);
-		}
+#if UNITY_EDITOR
+            if (lua_isinteger(luaState, stackPos) == 0) {
+                throw new Exception(string.Format("arg {0} expect integer, got float", stackPos));
+            }
+#endif
+            return lua_tointegerx(luaState, stackPos, IntPtr.Zero);
+        }
 
 		[DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
 		public static extern int luaS_yield(IntPtr luaState,int nrets);
@@ -503,10 +510,6 @@ namespace LuaInterface
 
         public static void lua_pushcfunction(IntPtr luaState, LuaCSFunction function)
         {
-#if SLUA_STANDALONE
-            // Add all LuaCSFunction£¬ or they will be GC collected!  (problem at windows, .net framework 4.5, `CallbackOnCollectedDelegated` exception)
-            GCHandle.Alloc(function);
-#endif
             IntPtr fn = Marshal.GetFunctionPointerForDelegate(function);
             lua_pushcclosure(luaState, fn, 0);
         }
@@ -647,10 +650,6 @@ namespace LuaInterface
 
         public static void lua_pushcclosure(IntPtr l, LuaCSFunction f, int nup)
         {
-#if SLUA_STANDALONE
-            // Add all LuaCSFunction£¬ or they will be GC collected!  (problem at windows, .net framework 4.5, `CallbackOnCollectedDelegated` exception)
-            GCHandle.Alloc(f);
-#endif
             IntPtr fn = Marshal.GetFunctionPointerForDelegate(f);
             lua_pushcclosure(l, fn, nup);
         }
