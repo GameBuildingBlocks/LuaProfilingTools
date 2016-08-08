@@ -17,7 +17,7 @@ stack.c:
 #include "stack.h"
 #include "clocks.h"
 #include "cJSON.h"
-#include <windows.h>
+
 
 int MAX_CHILD_SIZE = 20;
 
@@ -32,26 +32,6 @@ double dTotalTimeConsuming = 0.0;
 int   nOutputCount = 0;
 //time_maker_golbal_begin.QuadPart = 0;
 //time_maker_golbal_end.QuadPart = 0;
-
-
-void Convert(const char* strIn, char* strOut, int sourceCodepage, int targetCodepage)
-{
-	int len = lstrlen(strIn);
-	int unicodeLen = MultiByteToWideChar(sourceCodepage, 0, strIn, -1, NULL, 0);
-	wchar_t* pUnicode;
-	pUnicode = (wchar_t*)malloc((unicodeLen + 1)*sizeof(wchar_t));
-	memset(pUnicode, 0, (unicodeLen + 1)*sizeof(wchar_t));
-	MultiByteToWideChar(sourceCodepage, 0, strIn, -1, (LPWSTR)pUnicode, unicodeLen);
-	BYTE * pTargetData = NULL;
-	int targetLen = WideCharToMultiByte(targetCodepage, 0, (LPWSTR)pUnicode, -1, (char *)pTargetData, 0, NULL, NULL);
-	pTargetData = (BYTE*)malloc(targetLen + 1);
-	memset(pTargetData, 0, targetLen + 1);
-	WideCharToMultiByte(targetCodepage, 0, (LPWSTR)pUnicode, -1, (char *)pTargetData, targetLen, NULL, NULL);
-	lstrcpy(strOut, (char*)pTargetData);
-	free(pUnicode);
-	free(pTargetData);
-}
-
 
 void output(const char *format, ...) {
 	va_list ap;
