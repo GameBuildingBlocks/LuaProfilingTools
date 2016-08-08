@@ -1,0 +1,16 @@
+
+function start()
+	profiler_start("d://test_slua_profiler.json")
+end
+
+function main()
+	start()
+end
+
+function foo(a,b,c)
+	return a,b,c,"slua"
+end
+
+function stop()
+	profiler_stop()
+end
