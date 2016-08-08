@@ -215,6 +215,7 @@ namespace SLua
 
 //#if SLUA_STANDALONE
             doBind(L);
+            LuaDLL.init_profiler(L);
 		    this.luaState = luaState;
             doinit(L, flag, useTick);
             if (complete != null)

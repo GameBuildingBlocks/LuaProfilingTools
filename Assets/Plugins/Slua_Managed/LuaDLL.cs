@@ -86,6 +86,8 @@ namespace LuaInterface
 #else
         const string LUADLL = "slua";
 #endif
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void init_profiler(IntPtr L);
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void luaS_openextlibs(IntPtr L);
@@ -699,5 +701,6 @@ namespace LuaInterface
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern int luaS_subclassof(IntPtr l, int index, string t);
+
     }
 }
