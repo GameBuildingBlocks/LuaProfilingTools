@@ -221,7 +221,8 @@ lprofP_STATE* lprofP_init_core_profiler(const char *_out_filename, int isto_prin
 }
 
 void lprofP_close_core_profiler(lprofP_STATE* S) {
-  lprofT_tojson();
+  //lprofT_tojson();
+	lprofT_tojson_thread();
   if(outf) fclose(outf);
   if(S) free(S);
   

@@ -17,7 +17,14 @@ stack.c:
 #include "stack.h"
 #include "clocks.h"
 #include "cJSON.h"
+
+#define HAVE_STRUCT_TIMESPEC
+#ifdef WIN32
 #include <windows.h>
+#include "pthread.h"
+#else
+#include <pthread.h>
+#endif
 
 int MAX_CHILD_SIZE = 20;
 
@@ -33,25 +40,12 @@ int   nOutputCount = 0;
 //time_maker_golbal_begin.QuadPart = 0;
 //time_maker_golbal_end.QuadPart = 0;
 
-
-void Convert(const char* strIn, char* strOut, int sourceCodepage, int targetCodepage)
+void* thread_proc(void *args)
 {
-	int len = lstrlen(strIn);
-	int unicodeLen = MultiByteToWideChar(sourceCodepage, 0, strIn, -1, NULL, 0);
-	wchar_t* pUnicode;
-	pUnicode = (wchar_t*)malloc((unicodeLen + 1)*sizeof(wchar_t));
-	memset(pUnicode, 0, (unicodeLen + 1)*sizeof(wchar_t));
-	MultiByteToWideChar(sourceCodepage, 0, strIn, -1, (LPWSTR)pUnicode, unicodeLen);
-	BYTE * pTargetData = NULL;
-	int targetLen = WideCharToMultiByte(targetCodepage, 0, (LPWSTR)pUnicode, -1, (char *)pTargetData, 0, NULL, NULL);
-	pTargetData = (BYTE*)malloc(targetLen + 1);
-	memset(pTargetData, 0, targetLen + 1);
-	WideCharToMultiByte(targetCodepage, 0, (LPWSTR)pUnicode, -1, (char *)pTargetData, targetLen, NULL, NULL);
-	lstrcpy(strOut, (char*)pTargetData);
-	free(pUnicode);
-	free(pTargetData);
+	lprofT_tojson();
+	pthread_exit(NULL);
+	return NULL;
 }
-
 
 void output(const char *format, ...) {
 	va_list ap;
@@ -384,4 +378,10 @@ void lprofT_tojson()
 	dTotalTimeConsuming = 0.0;
 	time_maker_golbal_begin.QuadPart = 0;
 	time_maker_golbal_end.QuadPart = 0;
+}
+
+void lprofT_tojson_thread()
+{
+	pthread_t tThreadID;
+	pthread_create(&tThreadID, NULL, thread_proc, NULL);
 }
