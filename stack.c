@@ -18,6 +18,12 @@ stack.c:
 #include "clocks.h"
 #include "cJSON.h"
 
+#if defined (_WIN32)
+#include"pthread.h"
+#include<Windows.h>
+#else
+#include <pthread.h>
+#endif
 
 int MAX_CHILD_SIZE = 20;
 
@@ -32,6 +38,13 @@ double dTotalTimeConsuming = 0.0;
 int   nOutputCount = 0;
 //time_maker_golbal_begin.QuadPart = 0;
 //time_maker_golbal_end.QuadPart = 0;
+
+void *thread_tojson(void *arg)
+{
+	lprofT_tojson();
+	pthread_exit(NULL);
+	return NULL;
+}
 
 void output(const char *format, ...) {
 	va_list ap;
@@ -364,4 +377,12 @@ void lprofT_tojson()
 	dTotalTimeConsuming = 0.0;
 	time_maker_golbal_begin.QuadPart = 0;
 	time_maker_golbal_end.QuadPart = 0;
+}
+
+void lprofT_tojson_thread()
+{
+	pthread_t tid;
+	pthread_create(&tid, NULL, thread_tojson, NULL);
+
+
 }
