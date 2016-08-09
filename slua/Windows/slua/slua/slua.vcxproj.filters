@@ -228,5 +228,14 @@
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\stack.h">
       <Filter>luaprofiler</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\pthread.h">
+      <Filter>luaprofiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\sched.h">
+      <Filter>luaprofiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\semaphore.h">
+      <Filter>luaprofiler</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

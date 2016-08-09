@@ -66,6 +66,9 @@
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\core_profiler.h" />
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\function_meter.h" />
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\luaprofiler.h" />
+    <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\pthread.h" />
+    <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\sched.h" />
+    <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\semaphore.h" />
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\stack.h" />
     <ClInclude Include="..\..\..\..\src\lapi.h" />
     <ClInclude Include="..\..\..\..\src\lauxlib.h" />
@@ -224,6 +227,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>..\..\..\..\..\Hanoi-Core\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>pthreadVC2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
