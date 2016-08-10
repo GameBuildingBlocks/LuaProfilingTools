@@ -17,14 +17,14 @@ stack.c:
 #include "stack.h"
 #include "clocks.h"
 #include "cJSON.h"
-
+/*
 #if defined (_WIN32)
 #include"pthread.h"
 #include<Windows.h>
 #else
 #include <pthread.h>
 #endif
-
+*/
 int MAX_CHILD_SIZE = 20;
 
 lprofT_NODE* pTreeRoot = NULL;
@@ -38,13 +38,14 @@ double dTotalTimeConsuming = 0.0;
 int   nOutputCount = 0;
 //time_maker_golbal_begin.QuadPart = 0;
 //time_maker_golbal_end.QuadPart = 0;
-
+/*
 void *thread_tojson(void *arg)
 {
 	lprofT_tojson();
 	pthread_exit(NULL);
 	return NULL;
 }
+*/
 
 void output(const char *format, ...) {
 	va_list ap;
@@ -366,6 +367,41 @@ cJSON* treeTojson(lprofT_NODE* p)
 	return root;
 }
 
+cJSON* treeTojson2(lprofT_NODE* p)
+{
+	assert(p);
+	cJSON* root = NULL;
+	if (p && p->pNode)
+	{
+		root = cJSON_CreateObject();
+		cJSON_AddItemToObject(root, "currentLine", cJSON_CreateNumber(p->pNode->current_line));
+		cJSON_AddItemToObject(root, "lineDefined", cJSON_CreateNumber(p->pNode->line_defined));
+		cJSON_AddItemToObject(root, "timeConsuming", cJSON_CreateNumber(p->pNode->local_time));
+		cJSON_AddItemToObject(root, "stackLevel", cJSON_CreateNumber(p->pNode->stack_level));
+		cJSON_AddItemToObject(root, "interval", cJSON_CreateNumber(p->pNode->interval_time));
+		cJSON_AddItemToObject(root, "callType", cJSON_CreateString(p->pNode->what));
+
+		char* source = p->pNode->file_defined;
+		if (source == NULL || strcmp(source, "") == 0) {
+			source = "(string)";
+		}
+		cJSON_AddItemToObject(root, "moduleName", cJSON_CreateString(source));
+		char* name = p->pNode->function_name;
+		formats(name);
+		cJSON_AddItemToObject(root, "funcName", cJSON_CreateString(name));
+		{
+			cJSON* pChild = cJSON_CreateArray();
+			if (pChild)
+				cJSON_AddItemToObject(root, "children", pChild);
+			for (int i = 0; i < p->nChildCount; i++)
+				cJSON_AddItemToArray(pChild, treeTojson(p->ppChild[i]));
+		}
+
+		lprofT_free(p);
+	}
+	return root;
+}
+
 void lprofT_tojson()
 {
 	cJSON* root = treeTojson(pTopRoot);
@@ -379,10 +415,40 @@ void lprofT_tojson()
 	time_maker_golbal_end.QuadPart = 0;
 }
 
+/*
 void lprofT_tojson_thread()
 {
 	pthread_t tid;
 	pthread_create(&tid, NULL, thread_tojson, NULL);
 
 
+}
+*/
+
+void lprofT_tojson2()
+{
+	if (pTreeRoot)
+	{
+		cJSON* root = treeTojson2(pTreeRoot);
+		char *jstring = cJSON_Print(root);
+		//output("\n--------------------------------------------\n");
+		output(jstring);
+		cJSON_Delete(root);
+		free(jstring);
+		pTreeRoot = NULL;
+	}
+
+}
+
+void lprofT_close()
+{
+	cJSON* root = cJSON_CreateObject();
+	cJSON_AddItemToObject(root, "totaltimeConsuming", cJSON_CreateNumber(dTotalTimeConsuming));
+	cJSON_AddItemToObject(root, "totalCalls", cJSON_CreateNumber(nTotalCall));
+	char *jstring = cJSON_Print(root);
+	output(jstring);
+	cJSON_Delete(root);
+	free(jstring);
+	nTotalCall = 0;
+	dTotalTimeConsuming = 0.0;
 }

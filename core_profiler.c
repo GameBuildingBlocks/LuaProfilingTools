@@ -137,7 +137,8 @@ int lprofP_callhookOUT(lprofP_STATE* S) {
 	info = lprofM_leave_function(S, 0);
 
 	if (S->stack_level == 0)
-		lprofT_print();
+		lprofT_tojson2();
+		//lprofT_print();
 	/* writing a log may take too long to be computed with the function's time ...*/
 	/*lprofM_pause_total_time(S);
 	//info->local_time += function_call_time;
@@ -201,7 +202,7 @@ lprofP_STATE* lprofP_init_core_profiler(const char *_out_filename, int isto_prin
     randstr[strlen(randstr)-1]='\0';
 
   sprintf(auxs, out_filename, randstr);
-  outf = fopen(auxs, "w");
+  outf = fopen(auxs, "a");
   if (!outf) {
     return 0;
   }
@@ -222,7 +223,7 @@ lprofP_STATE* lprofP_init_core_profiler(const char *_out_filename, int isto_prin
 
 void lprofP_close_core_profiler(lprofP_STATE* S) {
   //lprofT_tojson();
-	lprofT_tojson_thread();
+  lprofT_close();
   if(outf) fclose(outf);
   if(S) free(S);
   
