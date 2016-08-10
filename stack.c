@@ -394,7 +394,7 @@ cJSON* treeTojson2(lprofT_NODE* p)
 			if (pChild)
 				cJSON_AddItemToObject(root, "children", pChild);
 			for (int i = 0; i < p->nChildCount; i++)
-				cJSON_AddItemToArray(pChild, treeTojson(p->ppChild[i]));
+				cJSON_AddItemToArray(pChild, treeTojson2(p->ppChild[i]));
 		}
 
 		lprofT_free(p);
