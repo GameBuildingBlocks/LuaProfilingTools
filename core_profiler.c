@@ -83,40 +83,32 @@ static void formats(char *s) {
   }
 }
 
-/*
-int lprofP_output(lprofP_STATE* S){
-	if (S->stack_level == 0) {
-		return 0;
+int filter_lua_api(char* func_name)
+{
+	static char *lua_api[] = {
+		"assert", "unpack", "__index", "__newindex", "setmetatable", "getmetatable", "rawget", "type",
+		"remove", NULL };
+
+	char **p = lua_api;
+	while (*p != NULL)
+	{
+		if (strcmp(*p, func_name) == 0)
+		{
+			return 1;
+		}
+
+		p++;
 	}
 
-	S->stack_level--;
-	lprofS_STACK_RECORD ret = lprofS_pop(&(S->stack_top));
-	info = &ret;
-
-	char* name = info->function_name;
-	if (strlen(name) > MAX_FUNCTION_NAME_LENGTH) {
-		name = (char*)malloc(MAX_FUNCTION_NAME_LENGTH + 10);
-		name[0] = '\"';
-		strncpy(name + 1, info->function_name, MAX_FUNCTION_NAME_LENGTH);
-		name[MAX_FUNCTION_NAME_LENGTH] = '"';
-		name[MAX_FUNCTION_NAME_LENGTH + 1] = '\0';
-	}
-	formats(name);
-
-	output("%d\t%s\t%s\t%d\t%d\t%f\t%f\n", info->stack_level, info->file_defined, name,
-		info->line_defined, info->current_line,
-		info->local_time, info->total_time);
-
-	return 1;
+	return 0;
 }
-*/
 
 /* computes new stack and new timer */
-void lprofP_callhookIN(lprofP_STATE* S, char *func_name, char *file, int linedefined, int currentline,char* what) {
- 	//if (S->stack_level == 0)
- 		//output("end--------------------------------------------\n");
-	//output("\t%d\t%s\t%s\t%d\t%d\t%lf\t%f\t%s\n", S->stack_level, file, func_name,
-		//linedefined, currentline,0.0, 0.0,"------>in");
+void lprofP_callhookIN(lprofP_STATE* S, char *func_name, char *file, int linedefined, int currentline,char* what) 
+{
+
+  if (func_name && filter_lua_api(func_name))
+	return;
   S->stack_level++;
   lprofM_enter_function(S, file, func_name, linedefined, currentline,what);
   
@@ -126,6 +118,9 @@ void lprofP_callhookIN(lprofP_STATE* S, char *func_name, char *file, int linedef
 /* pauses all timers to write a log line and computes the new stack */
 /* returns if there is another function in the stack */
 int lprofP_callhookOUT(lprofP_STATE* S) {
+
+	if (!S->stack_top)
+		return 0;
 
 	if (S->stack_level == 0) {
 		return 0;
@@ -202,7 +197,7 @@ lprofP_STATE* lprofP_init_core_profiler(const char *_out_filename, int isto_prin
     randstr[strlen(randstr)-1]='\0';
 
   sprintf(auxs, out_filename, randstr);
-  outf = fopen(auxs, "a");
+  outf = fopen(auxs, "w");
   if (!outf) {
     return 0;
   }
@@ -224,9 +219,10 @@ lprofP_STATE* lprofP_init_core_profiler(const char *_out_filename, int isto_prin
 void lprofP_close_core_profiler(lprofP_STATE* S) {
   //lprofT_tojson();
   lprofT_close();
-  if(outf) fclose(outf);
-  if(S) free(S);
-  
+  if (outf)
+	fclose(outf);
+  if(S) 
+	free(S);
 }
 
 lprofP_STATE* lprofP_create_profiler(float _function_call_time) {

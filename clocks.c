@@ -16,8 +16,12 @@ Design:
 
 #include <stdio.h>
 #include "clocks.h"
-#include <time.h>
 
+#ifdef _MSC_VER
+#include <time.h>
+#else
+#include <sys/time.h>
+#endif
 /*
    Here you can choose what time function you are going to use.
    These two defines ('TIMES' and 'CLOCK') correspond to the usage of
@@ -72,26 +76,51 @@ LARGE_INTEGER nFreq;
 
 void lprofC_start_timer2(LARGE_INTEGER *nBeginTime)
 {
+
+#ifdef _MSC_VER
 	QueryPerformanceFrequency(&nFreq);
 	QueryPerformanceCounter(nBeginTime);
+#else
+	gettimeofday(nBeginTime, NULL);
+#endif
+	
 }
 
 double lprofC_get_seconds2(LARGE_INTEGER *nBeginTime)
 {
 	LARGE_INTEGER nEndTime;
+	double time = 0.0;
+
+#ifdef _MSC_VER
 	QueryPerformanceCounter(&nEndTime);
-	double time = ((double)(nEndTime.QuadPart - nBeginTime->QuadPart) / (double)nFreq.QuadPart)*1000;
-	return (double)time;
+	time = ((double)(nEndTime.QuadPart - nBeginTime->QuadPart) / (double)nFreq.QuadPart) * 1000;
+#else
+	gettimeofday(&nEndTime, NULL);
+	time = (double)(nEndTime.tv_sec * 1000 - nBeginTime->tv_sec * 1000) + (double)(nEndTime.tv_usec - nBeginTime->tv_usec) / 1000;
+#endif
+	return time;
 }
 
 double lprofC_get_millisecond(LARGE_INTEGER *nTime)
 {
-	double time = ((double)(nTime->QuadPart)/(double)nFreq.QuadPart)*1000;
+	double time = 0.0;
+
+#ifdef _MSC_VER
+	time = ((double)(nTime->QuadPart) / (double)nFreq.QuadPart) * 1000;
+#else
+	//time = nTime->tv_usec / 1000;
+	time = (double)(nTime->tv_sec * 1000) + (double)(nTime->tv_usec) / 1000;
+#endif
 	return time;
 }
 
 double lprofC_get_interval(LARGE_INTEGER *nBeginTime, LARGE_INTEGER *nEndTime)
 {
-	double time = ((double)(nEndTime->QuadPart - nBeginTime->QuadPart) / (double)nFreq.QuadPart) * 1000;
-	return (double)time;
+	double time = 0.0;
+#ifdef _MSC_VER
+	time = ((double)(nEndTime->QuadPart - nBeginTime->QuadPart) / (double)nFreq.QuadPart) * 1000;
+#else
+	time = (double)(nEndTime->tv_sec * 1000 - nBeginTime->tv_sec * 1000) + (double)(nEndTime->tv_usec - nBeginTime->tv_usec) / 1000;
+#endif
+	return time;
 }

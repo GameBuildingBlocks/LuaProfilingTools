@@ -139,9 +139,9 @@ void lprofM_resume_function(lprofP_STATE* S) {
 /* the local time for the parent function is paused  */
 /* and the local and total time markers are started */
 void lprofM_enter_function(lprofP_STATE* S, char *file_defined, char *fcn_name, long linedefined, long currentline,char* what) {
-  char* prev_name;
-  char* cur_name;
-  char* cur_what;
+  char* prev_name = NULL;
+  char* cur_name = NULL;
+  char* cur_what = NULL;
   /* the flow has changed to another function: */
   /* pause the parent's function timer timer   */
   if (S->stack_top) {
