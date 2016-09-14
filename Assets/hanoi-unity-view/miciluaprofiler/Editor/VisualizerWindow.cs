@@ -27,7 +27,7 @@
 
          public VisualizerWindow()
          {
-             m_data.Load("Assets/luaprofiler_jx3pocket.json");
+             m_data.Load("Assets/hanoi-unity-view/luaprofiler_jx3pocket.json");
          }
 
          public void OnGUI()
