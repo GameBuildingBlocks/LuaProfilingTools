@@ -43,6 +43,45 @@ public class HanoiUtil
     static public float DrawingShrinkedTotal = 0.0f;
     static public int DrawingCounts = 0;
     static Dictionary<int, Color> m_colors = new Dictionary<int, Color>();
+    /// 画黑块的个数
+    static public int DrawingBlackSpaceNum = 0;
+    /// 鼠标X坐标在第几个黑块后面
+    static public int MouseXOnBlankSpaceIndex = 0;
+    /// 鼠标坐标在黑块中的偏移坐标
+    static public float MouseXInBlankSpaceSkewing = 0.0f;
+
+    /// <summary>
+    /// 检测鼠标X坐标在第几个黑块后面
+    /// 如果鼠标X坐标点击在黑块中，计算鼠标坐标在黑块中的偏移坐标
+    /// </summary>
+    public static void checkMouseXInScroolWheelSkewing(HanoiNode n,float mouseX)
+    {
+        if (n is HanoiBlankSpace)
+        {
+            DrawingBlackSpaceNum++;
+            //如果鼠标X在黑块后面
+            if (mouseX >= n.beginTime - DrawingShrinkedAccumulated)
+            {
+                //如果鼠标X在黑块中间
+                if (mouseX < n.beginTime - DrawingShrinkedAccumulated + HanoiVars.BlankSpaceWidth)
+                {
+                    MouseXInBlankSpaceSkewing = (float)n.beginTime - DrawingShrinkedAccumulated - mouseX;
+                }
+                else {
+                    MouseXOnBlankSpaceIndex = DrawingBlackSpaceNum;                
+                }
+            } 
+            HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
+        }
+
+        if (n.stackLevel == 0)
+        {
+            for (int i = 0; i < n.Children.Count; i++)
+            {
+                checkMouseXInScroolWheelSkewing(n.Children[i], mouseX);
+            }
+        }
+    }
 
     public static void DrawRecursively(HanoiNode n)
     {

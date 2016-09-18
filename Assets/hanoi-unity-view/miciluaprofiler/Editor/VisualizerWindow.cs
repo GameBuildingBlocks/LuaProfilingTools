@@ -155,8 +155,9 @@
                          float scale = Mathf.Max(0.03F, 1 + delta * 0.03F);
 
                          // Offset to make zoom centered around cursor position
-                         m_Translation.x -= mousePositionInDrawing.x * (scale - 1) * m_Scale.x;
 
+                         m_Translation.x -= (mousePositionInDrawing.x - getBlackSpaceShrinked()) * (scale - 1) * m_Scale.x;
+                        
                          // Apply zooming
                          m_Scale.x *= scale;
 
@@ -167,6 +168,15 @@
                  default:
                      break;
              }
+         }
+
+         private float getBlackSpaceShrinked() {
+             HanoiUtil.DrawingBlackSpaceNum = 0;
+             HanoiUtil.DrawingShrinkedAccumulated = 0;
+             HanoiUtil.MouseXOnBlankSpaceIndex = 0;
+             HanoiUtil.MouseXInBlankSpaceSkewing = 0;
+             HanoiUtil.checkMouseXInScroolWheelSkewing(m_data.Root.callStats, mousePositionInDrawing.x);
+             return HanoiUtil.MouseXOnBlankSpaceIndex * HanoiVars.BlankSpaceWidth - HanoiUtil.MouseXInBlankSpaceSkewing;
          }
 
 
