@@ -27,7 +27,6 @@ public class HanoiConst
     public const int BAD_NUM = -1;
 
     public const double ShrinkThreshold = 5.0;
-
     public static Dictionary<DyeType, DyePattern> DyePallette = new Dictionary<DyeType, DyePattern>()
     {
         { DyeType.Default,      new DyePattern { hueMin = 0, hueMax = 0, satMin = 0, satMax = 0, valMin = 0.5f, valMax = 0.8f} },       // gray

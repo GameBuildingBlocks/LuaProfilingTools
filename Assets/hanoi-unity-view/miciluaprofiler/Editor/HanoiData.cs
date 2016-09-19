@@ -17,7 +17,7 @@ public class HanoiRoot
     public string objectName = "";
     public string programName = "";
     public int totalCalls = 0;
-    public float timeConsuming = 0.0f;
+    public double timeConsuming = 0.0f;
 
     public HanoiNode callStats;
 }
@@ -93,6 +93,7 @@ public class HanoiData
 
     public bool Load(string filename)
     {
+        HanoiUtil.allSpaceNum = 0;
         try
         {
             string text = System.IO.File.ReadAllText(filename);
@@ -246,6 +247,17 @@ public class HanoiData
                                 bspace.endTime = child.beginTime;
                                 bspace.timeConsuming = bspace.endTime - bspace.beginTime;
                                 node.Children.Add(bspace);
+                            }
+                            if (lastStackOneEnd > 0 && interval <= HanoiConst.ShrinkThreshold)
+                            {
+                                if (child.stackLevel == 1)
+                                {
+                                    HanoiUtil.allSpaceNum += interval;
+                                }
+                            }
+                            if(lastStackOneEnd <= 0)
+                            {
+                                HanoiUtil.allSpaceNum += interval;
                             }
                         }
 

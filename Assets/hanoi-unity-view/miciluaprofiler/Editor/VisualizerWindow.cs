@@ -13,7 +13,7 @@
          float m_winHeight = 0.0f;
 
          HanoiData m_data = new HanoiData();
-
+         bool isFirstResize = false;
          HanoiNode m_picked;
 
          [MenuItem("Window/VisualizerWindow")]
@@ -33,19 +33,42 @@
          public void OnGUI()
          {
              CheckForResizing();
+             if (!isFirstResize)
+             {
+                 HanoiVars.BlankSpaceWidth = GetDrawingLengthByPanelPixels(50);
+                 HanoiUtil.testNum = 0;
+                 HanoiUtil.DrawingBlackSpaceNum = 0;
+                 HanoiUtil.getAllTimeConsuming(m_data.Root.callStats);
+
+                 HanoiUtil.DrawingShrinkedTotal = 0;
+                 HanoiUtil.DrawingShrinkedAccumulated = 0;
+                 HanoiUtil.DrawBlankSpaceRecursively(m_data.Root.callStats);
+
+                 HanoiUtil.DrawingShrinkedTotal = HanoiUtil.DrawingShrinkedAccumulated;
+                 float dec = HanoiUtil.DrawingBlackSpaceNum * HanoiVars.BlankSpaceWidth;
+                 //float scaleX = (m_winWidth - dec) / (HanoiUtil.testNum - dec + (float)HanoiUtil.allSpaceNum);
+                 float scaleX = (m_winWidth - dec) / (3777.762775f - HanoiUtil.DrawingShrinkedTotal-dec);
+                 m_Scale.x = scaleX;
+                 HanoiUtil.DrawingBlackSpaceNum = 0;
+                 isFirstResize = true;
+             }
 
              CheckForInput();
 
              Handles.BeginGUI();
              Handles.matrix = Matrix4x4.TRS(m_Translation, Quaternion.identity, new Vector3(m_Scale.x, m_Scale.y, 1));
-
-             //Handles.DrawLine(new Vector3(0, 0), new Vector3(300, 300));
              //Handles.DrawSolidRectangleWithOutline(new Rect(new Vector2(100, 100), new Vector2(50, 50)), Color.green, Color.green);
              //Debug.LogFormat("time: {0}, window: {1}", Time.time, this.position.ToString());
 
              DrawHanoiData(m_data.Root);
 
+             GUI.color = Color.yellow;
+             Handles.color = Color.yellow;
+             Handles.DrawLine(new Vector3(mousePositionInDrawing.x, 0), new Vector3(mousePositionInDrawing.x,1000));
+             Handles.Label(new Vector3(mousePositionInDrawing.x, mousePositionInDrawing.y), string.Format("Time: {0:0.000}", mousePositionInDrawing.x));
+            
              Handles.EndGUI();
+             Repaint();
          }
 
          private void CheckForResizing()
@@ -155,8 +178,7 @@
                          float scale = Mathf.Max(0.03F, 1 + delta * 0.03F);
 
                          // Offset to make zoom centered around cursor position
-
-                         m_Translation.x -= (mousePositionInDrawing.x - getBlackSpaceShrinked()) * (scale - 1) * m_Scale.x;
+                         m_Translation.x -= (mousePositionInDrawing.x - getBlackSpaceShrinkedWidth()) * (scale - 1) * m_Scale.x;
                         
                          // Apply zooming
                          m_Scale.x *= scale;
@@ -170,7 +192,7 @@
              }
          }
 
-         private float getBlackSpaceShrinked() {
+         private float getBlackSpaceShrinkedWidth() {
              HanoiUtil.DrawingBlackSpaceNum = 0;
              HanoiUtil.DrawingShrinkedAccumulated = 0;
              HanoiUtil.MouseXOnBlankSpaceIndex = 0;

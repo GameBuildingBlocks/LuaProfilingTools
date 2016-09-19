@@ -217,9 +217,9 @@ public static partial class JSONTemplates {
 	}
 	
 	public static Keyframe ToKeyframe(JSONObject obj){
-		Keyframe k = new Keyframe(obj.HasField("time")? obj.GetField("time").n : 0, obj.HasField("value")? obj.GetField("value").n : 0);
-		if(obj.HasField("inTangent")) k.inTangent = obj.GetField("inTangent").n;
-		if(obj.HasField("outTangent")) k.outTangent = obj.GetField("outTangent").n;
+        Keyframe k = new Keyframe(obj.HasField("time") ? obj.GetField("time").f : 0.0f, obj.HasField("value") ? obj.GetField("value").f : 0);
+        if (obj.HasField("inTangent")) k.inTangent = obj.GetField("inTangent").f;
+        if (obj.HasField("outTangent")) k.outTangent = obj.GetField("outTangent").f;
 		if(obj.HasField("tangentMode")) k.tangentMode = (int)obj.GetField("tangentMode").n;
 		
 		return k;
