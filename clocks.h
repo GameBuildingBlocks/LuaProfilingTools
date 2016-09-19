@@ -15,7 +15,7 @@ Design:
 *****************************************************************************/
 
 #include <time.h>
-#include <windows.h>
+#include "lp.h"
 
 void lprofC_start_timer(clock_t *time_marker);
 float lprofC_get_seconds(clock_t time_marker);

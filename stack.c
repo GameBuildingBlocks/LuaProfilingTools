@@ -36,16 +36,12 @@ int   nMaxStackLevel = 0;
 int   nTotalCall = 0;
 double dTotalTimeConsuming = 0.0;
 int   nOutputCount = 0;
-//time_maker_golbal_begin.QuadPart = 0;
-//time_maker_golbal_end.QuadPart = 0;
-/*
-void *thread_tojson(void *arg)
-{
-	lprofT_tojson();
-	pthread_exit(NULL);
-	return NULL;
-}
-*/
+long node_size = 0;
+int first_flush = 1;
+
+FILE* outf;
+LARGE_INTEGER time_maker_golbal_begin;
+LARGE_INTEGER time_maker_golbal_end;
 
 void output(const char *format, ...) {
 	va_list ap;
@@ -152,7 +148,11 @@ lprofS_STACK q;
 
 void lprofT_add(lprofS_STACK pChild)
 {
+#ifdef _MSC_VER
 	if (time_maker_golbal_begin.QuadPart <= 0)
+#else
+	if (time_maker_golbal_begin.tv_usec <= 0 || time_maker_golbal_begin.tv_sec <= 0)
+#endif
 		lprofC_start_timer2(&time_maker_golbal_begin);
 	nTotalCall++;
 	lprofT_NODE* p = lprofT_createNode(1);
@@ -250,7 +250,12 @@ void lprofT_output(lprofT_NODE* p)
 				{
 					char tmp[MAX_OUTPUT_MESSAGE_LENGTH];
 					memset(tmp, 0x0, MAX_OUTPUT_MESSAGE_LENGTH);
+					#ifdef _MSC_VER
 					strcpy_s(tmp, MAX_OUTPUT_MESSAGE_LENGTH, &pOutput[i]);
+					#else
+					memcpy(tmp, &pOutput[i], (size_t)MAX_OUTPUT_MESSAGE_LENGTH);
+					#endif
+					
 					//printf("%s\n", tmp);
 					output("%s\n", tmp);
 				}
@@ -277,6 +282,77 @@ void lprofT_free(lprofT_NODE* p)
 		p = NULL;
 	}
 	
+}
+
+cJSON* treeTojson2(lprofT_NODE* p)
+{
+	assert(p);
+	cJSON* root = NULL;
+	if (p && p->pNode)
+	{
+		root = cJSON_CreateObject();
+		cJSON_AddItemToObject(root, "ln", cJSON_CreateNumber(p->pNode->current_line));
+		//cJSON_AddItemToObject(root, "lnDef", cJSON_CreateNumber(p->pNode->line_defined));
+		cJSON_AddItemToObject(root, "cs", cJSON_CreateNumber(p->pNode->local_time)); // time consuming
+		cJSON_AddItemToObject(root, "lv", cJSON_CreateNumber(p->pNode->stack_level));
+		//cJSON_AddItemToObject(root, "itv", cJSON_CreateNumber(p->pNode->interval_time));
+		cJSON_AddItemToObject(root, "info", cJSON_CreateString(p->pNode->what));
+
+		char* source = p->pNode->file_defined;
+		if (source == NULL || strcmp(source, "") == 0) {
+			source = "(string)";
+		}
+		cJSON_AddItemToObject(root, "mod", cJSON_CreateString(source)); // module name
+		char* name = p->pNode->function_name;
+		formats(name);
+		cJSON_AddItemToObject(root, "fn", cJSON_CreateString(name));	// function name
+		{
+			cJSON* pChild = cJSON_CreateArray();
+			if (pChild)
+				cJSON_AddItemToObject(root, "sub", pChild);
+			int i = 0;
+			for (i = 0; i < p->nChildCount; i++)
+				cJSON_AddItemToArray(pChild, treeTojson2(p->ppChild[i]));
+		}
+
+		lprofT_free(p);
+	}
+	return root;
+}
+
+void lprofT_tojson2()
+{
+	if (pTreeRoot)
+	{
+		if(first_flush)
+			output("[");
+		first_flush = 0;
+
+		cJSON* root = treeTojson2(pTreeRoot);
+		char *jstring = cJSON_Print(root);
+		output(jstring);
+		cJSON_Delete(root);
+		free(jstring);
+		pTreeRoot = NULL;
+		node_size = 0;
+
+		output(",");
+	}
+}
+
+void lprofT_close()
+{
+	cJSON* root = cJSON_CreateObject();
+	cJSON_AddItemToObject(root, "total_cs", cJSON_CreateNumber(dTotalTimeConsuming));
+	cJSON_AddItemToObject(root, "total_call", cJSON_CreateNumber(nTotalCall));
+	char *jstring = cJSON_Print(root);
+	output(jstring);
+	cJSON_Delete(root);
+	free(jstring);
+	nTotalCall = 0;
+	dTotalTimeConsuming = 0.0;
+	first_flush = 1;
+	output("]");
 }
 
 cJSON* treeTojson(lprofT_NODE* p)
@@ -411,33 +487,16 @@ void lprofT_tojson()
 	free(jstring);
 	nTotalCall = 0;
 	dTotalTimeConsuming = 0.0;
+#ifdef _MSC_VER
 	time_maker_golbal_begin.QuadPart = 0;
 	time_maker_golbal_end.QuadPart = 0;
-}
+#else
+	time_maker_golbal_begin.tv_sec = 0;
+	time_maker_golbal_begin.tv_usec = 0;
 
-/*
-void lprofT_tojson_thread()
-{
-	pthread_t tid;
-	pthread_create(&tid, NULL, thread_tojson, NULL);
-
-
-}
-*/
-
-void lprofT_tojson2()
-{
-	if (pTreeRoot)
-	{
-		cJSON* root = treeTojson2(pTreeRoot);
-		char *jstring = cJSON_Print(root);
-		//output("\n--------------------------------------------\n");
-		output(jstring);
-		cJSON_Delete(root);
-		free(jstring);
-		pTreeRoot = NULL;
-	}
-
+	time_maker_golbal_end.tv_sec = 0;
+	time_maker_golbal_end.tv_usec = 0;
+#endif	
 }
 
 void lprofT_close()
