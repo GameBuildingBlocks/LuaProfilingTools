@@ -20,8 +20,9 @@ public class HanoiUtil
     }
 
 
-    static public double allSpaceNum = 0.0f;
-    static public float testNum = 0.0f;
+    static public float TotalTimeConsuming = 0.0f;
+    //显示全局时间时的累积缩进
+    static public float GlobalTimeShrinkedAccumulated = 0.0f;
     static public float DrawingShrinkedAccumulated = 0.0f;
     static public float DrawingShrinkedTotal = 0.0f;
     static public int DrawingCounts = 0;
@@ -33,6 +34,7 @@ public class HanoiUtil
     /// 鼠标坐标在黑块中的偏移坐标
     static public float MouseXInBlankSpaceSkewing = 0.0f;
     static public float MouseXInBlankSpaceSkewingAccumulated = 0.0f;
+
     /// <summary>
     /// 检测鼠标X坐标在第几个黑块后面
     /// 如果鼠标X坐标点击在黑块中，计算鼠标坐标在黑块中的偏移坐标
@@ -66,6 +68,50 @@ public class HanoiUtil
         }
     }
 
+    public static void checkMouseXInGlobalTimeSkewing(HanoiNode n, float mouseX)
+    {
+        if (n is HanoiBlankSpace)
+        {
+            //如果鼠标X在黑块后面
+            if (mouseX >= n.beginTime - DrawingShrinkedAccumulated)
+            {
+                //如果鼠标X在黑块中间
+                if (mouseX < n.beginTime - DrawingShrinkedAccumulated + HanoiVars.BlankSpaceWidth)
+                {
+                    float skewingInBlankSpace = (float)n.beginTime - DrawingShrinkedAccumulated - mouseX;
+                    MouseXInBlankSpaceSkewing = skewingInBlankSpace - (skewingInBlankSpace / HanoiVars.BlankSpaceWidth * (float)n.timeConsuming);
+                }
+                else
+                {
+                    GlobalTimeShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
+                }
+            }
+            HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
+        }
+
+        if (n.stackLevel == 0)
+        {
+            for (int i = 0; i < n.Children.Count; i++)
+            {
+                checkMouseXInGlobalTimeSkewing(n.Children[i], mouseX);
+            }
+        }
+    }
+    public static void DataRecursively(HanoiNode n)
+    {
+        if (n is HanoiBlankSpace)
+        {
+            HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
+            HanoiUtil.DrawingBlackSpaceNum++;
+        }
+        if (n.stackLevel == 0)
+        {
+            for (int i = 0; i < n.Children.Count; i++)
+            {
+                DataRecursively(n.Children[i]);
+            }
+        }
+    }
     public static void DrawBlankSpaceRecursively(HanoiNode n)
     {
         if (n is HanoiBlankSpace)
@@ -75,6 +121,7 @@ public class HanoiUtil
             n.renderRect = new Rect((float)n.beginTime - DrawingShrinkedAccumulated, 0.0f, HanoiVars.BlankSpaceWidth, HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - 1));
             HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
             Handles.DrawSolidRectangleWithOutline(n.renderRect, c, c);
+            HanoiUtil.DrawingBlackSpaceNum++;
         }
 
         if (n.stackLevel == 0)
@@ -83,31 +130,6 @@ public class HanoiUtil
             {
                 DrawBlankSpaceRecursively(n.Children[i]);
             }
-        }
-    }
-
-    public static void getAllTimeConsuming(HanoiNode n)
-    {
-        if (n is HanoiBlankSpace)
-        {
-            testNum += HanoiVars.BlankSpaceWidth;
-            DrawingBlackSpaceNum++;
-        }
-        else
-        {
-            if (n.beginTime == 0)
-            {
-                double temp =n.timeConsuming;
-            }
-            else
-            {
-                if (n.stackLevel==1)
-                    testNum +=(float)n.timeConsuming;
-            }
-        }
-        for (int i = 0; i < n.Children.Count; i++)
-        {
-            getAllTimeConsuming(n.Children[i]);
         }
     }
 
@@ -129,9 +151,8 @@ public class HanoiUtil
             float renderedWidth = (float)n.timeConsuming;
             if (n.stackLevel==0)
             {
-                //testNum = 0;
-                //getAllTimeConsuming(n);
-                n.renderRect = new Rect((float)n.beginTime, HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel - 1), (float)n.timeConsuming - HanoiUtil.DrawingShrinkedTotal, HanoiVars.StackHeight);
+                //画最底层总时间
+                n.renderRect = new Rect((float)n.beginTime, HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel - 1), TotalTimeConsuming - HanoiUtil.DrawingShrinkedTotal, HanoiVars.StackHeight);
             }
             else {
                 n.renderRect = new Rect((float)n.beginTime - DrawingShrinkedAccumulated , HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel - 1), (float)n.timeConsuming, HanoiVars.StackHeight);            

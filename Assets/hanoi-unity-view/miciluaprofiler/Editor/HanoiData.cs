@@ -93,12 +93,11 @@ public class HanoiData
 
     public bool Load(string filename)
     {
-        HanoiUtil.allSpaceNum = 0;
         try
         {
             string text = System.IO.File.ReadAllText(filename);
             m_json = new JSONObject(text);
-
+    
             if (m_json.type != JSONObject.Type.OBJECT)
                 return false;
 
@@ -116,7 +115,6 @@ public class HanoiData
             }
 
             Debug.LogFormat("reading {0} objects.", HanoiNode.s_count);
-
         }
         catch (Exception e)
         {
@@ -126,6 +124,56 @@ public class HanoiData
 
         return true;
     }
+
+    public void addFrameTag(string loadFile,string outFile) {
+        try
+        {
+            string text = System.IO.File.ReadAllText(loadFile);
+            JSONObject loadJson = new JSONObject(text);
+
+            if (m_json.type != JSONObject.Type.OBJECT)
+                return ;
+
+            if (m_json.list.Count != 1)
+                return ;
+
+            JSONObject jsonRoot = (JSONObject)m_json.list[0];
+            for (int i = 0; i < jsonRoot.list.Count; i++)
+            {
+                string key = (string)jsonRoot.keys[i];
+                JSONObject j = (JSONObject)jsonRoot.list[i];
+                if (key == "callStats" && j.type == JSONObject.Type.OBJECT)
+                {
+                    for (int k = 0; k < j.list.Count; k++)
+                    {
+                        //j.keys.Add("frameTag");
+                        //string objKey = (string)j.keys[k];
+                        //JSONObject objJ = (JSONObject)j.list[k];
+                        //if (objKey == "stackLevel" && objJ.type == JSONObject.Type.NUMBER)
+                        //{
+                        //    (int)objJ.n;
+                        //}
+                        //if (objKey == "begintime" && objJ.type == JSONObject.Type.NUMBER)
+                        //{
+                        //    objJ.n;
+                        //}
+                        //if (objKey == "endtime" && objJ.type == JSONObject.Type.NUMBER)
+                        //{
+                        //    objJ.n;
+                        //}
+                    }
+                    j.AddField("frameTag", true);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogException(e);
+            return ;
+        }
+        System.IO.File.WriteAllText(outFile, m_json.ToString(), Encoding.UTF8);
+    }
+
 
     bool readRoot(JSONObject obj, HanoiRoot root)
     {
@@ -247,17 +295,6 @@ public class HanoiData
                                 bspace.endTime = child.beginTime;
                                 bspace.timeConsuming = bspace.endTime - bspace.beginTime;
                                 node.Children.Add(bspace);
-                            }
-                            if (lastStackOneEnd > 0 && interval <= HanoiConst.ShrinkThreshold)
-                            {
-                                if (child.stackLevel == 1)
-                                {
-                                    HanoiUtil.allSpaceNum += interval;
-                                }
-                            }
-                            if(lastStackOneEnd <= 0)
-                            {
-                                HanoiUtil.allSpaceNum += interval;
                             }
                         }
 

@@ -8,12 +8,10 @@
          internal Vector2 m_Scale = new Vector2(1.0f, 1.0f);
          [SerializeField]
          internal Vector2 m_Translation = new Vector2(0, 0);
-
          float m_winWidth = 0.0f;
          float m_winHeight = 0.0f;
 
          HanoiData m_data = new HanoiData();
-         bool isFirstResize = false;
          HanoiNode m_picked;
 
          [MenuItem("Window/VisualizerWindow")]
@@ -23,59 +21,80 @@
              VisualizerWindow window = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
              window.Show();
              window.wantsMouseMove = true;
+             window.CheckForResizing();
+             window.fitScreenSizeScale();
          }
 
          public VisualizerWindow()
          {
-             m_data.Load("Assets/hanoi-unity-view/luaprofiler_jx3pocket.json");
+             //m_data.addFrameTag("Assets/hanoi-unity-view/luaprofiler_jx3pocket.json",
+             //    "Assets/hanoi-unity-view/luaprofiler_jx3pocket_out.json");
+             bool succ = m_data.Load("Assets/hanoi-unity-view/luaprofiler_jx3pocket_out.json");
+             if (succ)
+             {
+                 HanoiUtil.TotalTimeConsuming = (float)m_data.Root.callStats.timeConsuming;
+             }
          }
 
          public void OnGUI()
          {
              CheckForResizing();
-             if (!isFirstResize)
-             {
-                 HanoiVars.BlankSpaceWidth = GetDrawingLengthByPanelPixels(50);
-                 HanoiUtil.testNum = 0;
-                 HanoiUtil.DrawingBlackSpaceNum = 0;
-                 HanoiUtil.getAllTimeConsuming(m_data.Root.callStats);
-
-                 HanoiUtil.DrawingShrinkedTotal = 0;
-                 HanoiUtil.DrawingShrinkedAccumulated = 0;
-                 HanoiUtil.DrawBlankSpaceRecursively(m_data.Root.callStats);
-
-                 HanoiUtil.DrawingShrinkedTotal = HanoiUtil.DrawingShrinkedAccumulated;
-                 float dec = HanoiUtil.DrawingBlackSpaceNum * HanoiVars.BlankSpaceWidth;
-                 //float scaleX = (m_winWidth - dec) / (HanoiUtil.testNum - dec + (float)HanoiUtil.allSpaceNum);
-                 float scaleX = (m_winWidth - dec) / (3777.762775f - HanoiUtil.DrawingShrinkedTotal-dec);
-                 m_Scale.x = scaleX;
-                 HanoiUtil.DrawingBlackSpaceNum = 0;
-                 isFirstResize = true;
-             }
-
              CheckForInput();
-
              Handles.BeginGUI();
              Handles.matrix = Matrix4x4.TRS(m_Translation, Quaternion.identity, new Vector3(m_Scale.x, m_Scale.y, 1));
-             //Handles.DrawSolidRectangleWithOutline(new Rect(new Vector2(100, 100), new Vector2(50, 50)), Color.green, Color.green);
-             //Debug.LogFormat("time: {0}, window: {1}", Time.time, this.position.ToString());
 
              DrawHanoiData(m_data.Root);
+             showMouseGlobalTime();
 
-             GUI.color = Color.yellow;
-             Handles.color = Color.yellow;
-             Handles.DrawLine(new Vector3(mousePositionInDrawing.x, 0), new Vector3(mousePositionInDrawing.x,1000));
-             Handles.Label(new Vector3(mousePositionInDrawing.x, mousePositionInDrawing.y), string.Format("Time: {0:0.000}", mousePositionInDrawing.x));
-            
              Handles.EndGUI();
              Repaint();
          }
 
-         private void CheckForResizing()
+         /// <summary>
+         /// 鼠标旁显示全局时间
+         /// </summary>
+         private void showMouseGlobalTime() {
+             Rect r = new Rect();
+             r.position = mousePositionInDrawing;
+             r.width = HanoiVars.LabelBackgroundWidth/2;
+             r.height = 15;
+             Color bg = Color.yellow;
+             bg.a = 0.5f;
+             Handles.DrawSolidRectangleWithOutline(r, bg, bg);
+             
+             
+             GUI.color = Color.black;
+             Handles.color = Color.yellow;
+             Handles.DrawLine(new Vector3(mousePositionInDrawing.x, -200), new Vector3(mousePositionInDrawing.x, 1000));
+             Handles.Label(new Vector3(mousePositionInDrawing.x, mousePositionInDrawing.y), string.Format("Time: {0:0.000}", mousePositionInDrawing.x + getMouseGlobalTimeShrinkedWidth()));
+         }
+
+         private float getMouseGlobalTimeShrinkedWidth() {
+             HanoiUtil.GlobalTimeShrinkedAccumulated = 0;
+             HanoiUtil.MouseXInBlankSpaceSkewing = 0;
+             HanoiUtil.DrawingShrinkedAccumulated = 0;
+             HanoiUtil.checkMouseXInGlobalTimeSkewing(m_data.Root.callStats, mousePositionInDrawing.x);
+             return HanoiUtil.GlobalTimeShrinkedAccumulated + HanoiUtil.MouseXInBlankSpaceSkewing;
+         }
+
+         /// <summary>
+         /// 自动计算scale大小，使图形适配屏幕大小
+         /// </summary>
+         public void fitScreenSizeScale() {
+             HanoiVars.BlankSpaceWidth = GetDrawingLengthByPanelPixels(50);
+             HanoiUtil.DrawingBlackSpaceNum = 0;
+             HanoiUtil.DrawingShrinkedAccumulated = 0;
+             HanoiUtil.DataRecursively(m_data.Root.callStats);
+             float blankSpaceWidth = HanoiUtil.DrawingBlackSpaceNum * HanoiVars.BlankSpaceWidth;
+             float fitScaleX = (m_winWidth - blankSpaceWidth) / (HanoiUtil.TotalTimeConsuming -  HanoiUtil.DrawingShrinkedAccumulated - blankSpaceWidth);
+             m_Scale.x = fitScaleX;
+         }
+
+         public void CheckForResizing()
          {
              if (Mathf.Approximately(position.width, m_winWidth) && 
                  Mathf.Approximately(position.height, m_winHeight))
-                 return;
+                 return; 
 
              m_winWidth = position.width;
              m_winHeight = position.height;
@@ -175,11 +194,11 @@
                          delta = -delta;
 
                          // Scale multiplier. Don't allow scale of zero or below!
-                         float scale = Mathf.Max(0.03F, 1 + delta * 0.03F);
+                         float scale = Mathf.Max(0.1F, 1 + delta * 0.1F);
 
                          // Offset to make zoom centered around cursor position
                          m_Translation.x -= (mousePositionInDrawing.x - getBlackSpaceShrinkedWidth()) * (scale - 1) * m_Scale.x;
-                        
+                         
                          // Apply zooming
                          m_Scale.x *= scale;
 
@@ -201,7 +220,6 @@
              return HanoiUtil.MouseXOnBlankSpaceIndex * HanoiVars.BlankSpaceWidth - HanoiUtil.MouseXInBlankSpaceSkewing;
          }
 
-
          private HanoiNode PickHanoiRecursively(HanoiNode n, Vector2 mousePos)
          {
              if (!n.HasValidRect())
@@ -221,7 +239,6 @@
                      return child;
                  }
              }
-
              return null;
          }
      }

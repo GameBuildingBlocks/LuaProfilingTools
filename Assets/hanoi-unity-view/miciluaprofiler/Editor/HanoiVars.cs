@@ -9,4 +9,5 @@ public static class HanoiVars
 
     public static float StackHeight = 0.0f;
     public static int DrawnStackCount = 1;
+
 }
