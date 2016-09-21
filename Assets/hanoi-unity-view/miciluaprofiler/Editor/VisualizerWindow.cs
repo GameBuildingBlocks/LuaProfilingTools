@@ -12,6 +12,7 @@
          float m_winHeight = 0.0f;
 
          HanoiData m_data = new HanoiData();
+         HanoiData m_ShrinkedFrameData = new HanoiData();
          HanoiNode m_picked;
 
          [MenuItem("Window/VisualizerWindow")]
@@ -29,6 +30,7 @@
          {
              //m_data.addFrameTag("Assets/hanoi-unity-view/luaprofiler_jx3pocket.json",
              //    "Assets/hanoi-unity-view/luaprofiler_jx3pocket_out.json");
+
              bool succ = m_data.Load("Assets/hanoi-unity-view/luaprofiler_jx3pocket_out.json");
              if (succ)
              {
@@ -43,11 +45,79 @@
              Handles.BeginGUI();
              Handles.matrix = Matrix4x4.TRS(m_Translation, Quaternion.identity, new Vector3(m_Scale.x, m_Scale.y, 1));
 
+             drawFrameInfo(mousePositionInDrawing.x);
              DrawHanoiData(m_data.Root);
-             showMouseGlobalTime();
+             drawTimeInterval();
 
+             showMouseGlobalTime();
              Handles.EndGUI();
              Repaint();
+         }
+
+         private void drawFrameInfo(float mouseX) {
+             if (mouseX < HanoiData.FrameTagInfoList[0].frameTime || mouseX > HanoiData.FrameTagInfoList[HanoiData.FrameTagInfoList.Count-1].frameTime) return;
+             bool isShowFrameInfoAlready =false;
+             int  setNextFrameHighlightIndex = -1;
+               for(int i =0;i<HanoiData.FrameTagInfoList.Count;i++)
+               {
+                       HanoiUtil.DrawingShrinkedAccumulated = 0;
+                       HanoiUtil.GlobalTimeXToShrinkedPosXSkewing = 0;
+                       HanoiUtil.getShrinkedPosXByGlobalTimeX(m_data.Root.callStats,HanoiData.FrameTagInfoList[i].frameTime); 
+                       float beginPosX = 0;
+                       if (HanoiUtil.GlobalTimeXToShrinkedPosXSkewing <= 0)
+                       {
+                           Color preColor = Handles.color;
+                           Color LineColor = Color.gray;
+                           LineColor.a = 0.5f;
+                           Handles.color = LineColor;
+                           if (i == 0)
+                           {
+                               beginPosX = HanoiData.FrameTagInfoList[i].frameTime;
+                           }
+                           else
+                            {
+                                beginPosX = HanoiData.FrameTagInfoList[i - 1].frameTime - HanoiUtil.DrawingShrinkedAccumulated;
+                            }
+
+                           GUI.color = Color.white;
+                           if (!isShowFrameInfoAlready && (mouseX + HanoiUtil.DrawingShrinkedAccumulated) < HanoiData.FrameTagInfoList[i].frameTime && !checkMouseXInBlackSpace(m_data.Root.callStats, mouseX))
+                           {
+                               isShowFrameInfoAlready = true;
+                               if (i + 1 != HanoiData.FrameTagInfoList.Count) 
+                                   setNextFrameHighlightIndex = i + 1;
+                               Rect r = new Rect();
+                               r.position = new Vector2(beginPosX, 0);
+                               r.width = HanoiVars.LabelBackgroundWidth / 1.5f;
+                               r.height = 60;
+                               Color bg = Color.white;
+                               bg.a = 0.5f;
+                               Handles.DrawSolidRectangleWithOutline(r, bg, bg);
+                               Handles.Label(new Vector3(beginPosX, 0), string.Format("frameID:{0:0}", HanoiData.FrameTagInfoList[i-1].frameID));
+                               Handles.Label(new Vector3(beginPosX, 15), string.Format("frameTime:{0:0.00}", HanoiData.FrameTagInfoList[i-1].frameTime));
+                               Handles.Label(new Vector3(beginPosX, 30), string.Format("frameUnityTime:{0:0.00}", HanoiData.FrameTagInfoList[i-1].frameUnityTime));
+                               if (i == 0)
+                               {
+                                   Handles.Label(new Vector3(beginPosX, 45), string.Format("frameInterval:{0:0.00}", HanoiData.FrameTagInfoList[i].frameTime));
+                               }
+                               else {
+                                   Handles.Label(new Vector3(beginPosX, 45), string.Format("frameInterval:{0:0.00}", HanoiData.FrameTagInfoList[i].frameTime - HanoiData.FrameTagInfoList[i - 1].frameTime));
+                               }
+                               Handles.color = Color.green;
+                           }
+                           if (i == setNextFrameHighlightIndex)
+                               Handles.color = Color.green;
+                           Handles.DrawLine(new Vector3(beginPosX, -106), new Vector3(beginPosX, 685));
+                           Handles.color = preColor;
+                       }
+               }
+         }
+
+         private bool checkMouseXInBlackSpace(HanoiNode n, float mouseX)
+         {
+             HanoiUtil.DrawingShrinkedAccumulated = 0;
+             HanoiUtil.ISMouseInBlankSpace = false;
+             HanoiUtil.checkMouseXInBlankSpace(n,mouseX);
+             return HanoiUtil.ISMouseInBlankSpace;
          }
 
          /// <summary>
@@ -62,12 +132,46 @@
              bg.a = 0.5f;
              Handles.DrawSolidRectangleWithOutline(r, bg, bg);
              
-             
              GUI.color = Color.black;
              Handles.color = Color.yellow;
              Handles.DrawLine(new Vector3(mousePositionInDrawing.x, -200), new Vector3(mousePositionInDrawing.x, 1000));
              Handles.Label(new Vector3(mousePositionInDrawing.x, mousePositionInDrawing.y), string.Format("Time: {0:0.000}", mousePositionInDrawing.x + getMouseGlobalTimeShrinkedWidth()));
          }
+
+         private void drawTimeInterval() {
+             Handles.color = Color.white;
+             float timeInterval = getTimeIntervalByScaleX(m_Scale.x);
+             int timeFrameNum = (int)(HanoiUtil.TotalTimeConsuming/getTimeIntervalByScaleX(m_Scale.x));
+             for (int i = 0; i < timeFrameNum; i++)
+             {
+                 HanoiUtil.DrawingBlackSpaceNum = 0;
+                 HanoiUtil.DrawingShrinkedAccumulated = 0;
+                 HanoiUtil.GlobalTimeXToShrinkedPosXSkewing = 0;
+                 HanoiUtil.getShrinkedPosXByGlobalTimeX(m_data.Root.callStats, i * timeInterval);
+                 if (HanoiUtil.GlobalTimeXToShrinkedPosXSkewing <= 0)
+                 {
+                     Handles.DrawLine(new Vector3(i * timeInterval - HanoiUtil.DrawingShrinkedAccumulated, 780), new Vector3(i * timeInterval - HanoiUtil.DrawingShrinkedAccumulated, 830));
+                     Handles.Label(new Vector3(i * timeInterval - HanoiUtil.DrawingShrinkedAccumulated, 780), string.Format("{0:0.00}", i * timeInterval));
+                 }
+             }
+         }
+
+         private float getTimeIntervalByScaleX(float scaleX) {
+             if (scaleX <= 27) {
+                 return 5;
+             }
+             else if (scaleX <= 65)
+             {
+                 return 4;
+             }else if (scaleX <=125){
+                 return 3;
+             }
+             else if (scaleX <= 295) {
+                 return 2;             
+             }
+             return 1;
+         }
+
 
          private float getMouseGlobalTimeShrinkedWidth() {
              HanoiUtil.GlobalTimeShrinkedAccumulated = 0;

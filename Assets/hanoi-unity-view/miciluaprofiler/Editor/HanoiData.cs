@@ -53,7 +53,7 @@ public class HanoiNode
     public Rect renderRect;
 
     public bool highlighted = false;
-
+    public bool isFrameShriked = false;
 
     public Color GetNodeColor()
     {
@@ -81,6 +81,19 @@ public class HanoiBlankSpace : HanoiNode
     }
 }
 
+public class FrameTagInfo 
+{
+    public int frameID =0;
+    public float frameTime = 0.0f;
+    public float frameUnityTime = 0.0f;
+    public bool isHighLight = false;
+    public FrameTagInfo()
+    {
+    }
+}
+
+
+
 public class HanoiData 
 {
     public HanoiRoot Root { get { return m_hanoiData; } }
@@ -91,8 +104,16 @@ public class HanoiData
     JSONObject m_json;
     HanoiRoot m_hanoiData;
 
+    float frameTagTimeAccumulated = 0.0f;
+    float frameTagInterval = 0.0f;
+    public int frameTagID = 1;
+    public List<JSONObject> addFrameTagList = new List<JSONObject>();
+    public static List<FrameTagInfo> FrameTagInfoList = new List<FrameTagInfo>();
+    
+
     public bool Load(string filename)
     {
+        addFrameTagList.Clear();
         try
         {
             string text = System.IO.File.ReadAllText(filename);
@@ -131,50 +152,45 @@ public class HanoiData
             string text = System.IO.File.ReadAllText(loadFile);
             JSONObject loadJson = new JSONObject(text);
 
-            if (m_json.type != JSONObject.Type.OBJECT)
+            if (loadJson.type != JSONObject.Type.OBJECT)
                 return ;
 
-            if (m_json.list.Count != 1)
+            if (loadJson.list.Count != 1)
                 return ;
 
-            JSONObject jsonRoot = (JSONObject)m_json.list[0];
-            for (int i = 0; i < jsonRoot.list.Count; i++)
-            {
-                string key = (string)jsonRoot.keys[i];
-                JSONObject j = (JSONObject)jsonRoot.list[i];
-                if (key == "callStats" && j.type == JSONObject.Type.OBJECT)
+                JSONObject jsonRoot = (JSONObject)loadJson.list[0];
+                for (int i = 0; i < jsonRoot.list.Count; i++)
                 {
-                    for (int k = 0; k < j.list.Count; k++)
+                    string key = (string)jsonRoot.keys[i];
+                    JSONObject j = (JSONObject)jsonRoot.list[i];
+                    if (key == "callStats" && j.type == JSONObject.Type.OBJECT)
                     {
-                        //j.keys.Add("frameTag");
-                        //string objKey = (string)j.keys[k];
-                        //JSONObject objJ = (JSONObject)j.list[k];
-                        //if (objKey == "stackLevel" && objJ.type == JSONObject.Type.NUMBER)
-                        //{
-                        //    (int)objJ.n;
-                        //}
-                        //if (objKey == "begintime" && objJ.type == JSONObject.Type.NUMBER)
-                        //{
-                        //    objJ.n;
-                        //}
-                        //if (objKey == "endtime" && objJ.type == JSONObject.Type.NUMBER)
-                        //{
-                        //    objJ.n;
-                        //}
+                        if (j.type != JSONObject.Type.OBJECT)
+                            return;
+                        readObjectForAddFrameTag(j);
+                        for (int k = 0; k < j.list.Count; k++)
+                        {
+                            string kkey = (string)j.keys[k];
+                            JSONObject kj = (JSONObject)j.list[k];
+                            if (kkey == "children" && kj.type == JSONObject.Type.ARRAY)
+                            {
+                                for (int s = 0; s < addFrameTagList.Count; s++)
+                                {
+                                    JSONObject js = new JSONObject(JSONObject.Type.ARRAY);
+                                    kj.Add(addFrameTagList[s]);
+                                }
+                            }
+                        }
                     }
-                    j.AddField("frameTag", true);
                 }
-            }
+                System.IO.File.WriteAllText(outFile, loadJson.ToString(), Encoding.UTF8);
         }
-        catch (Exception e)
+            catch (Exception e)
         {
             Debug.LogException(e);
             return ;
         }
-        System.IO.File.WriteAllText(outFile, m_json.ToString(), Encoding.UTF8);
     }
-
-
     bool readRoot(JSONObject obj, HanoiRoot root)
     {
         if (obj.type != JSONObject.Type.OBJECT)
@@ -215,11 +231,56 @@ public class HanoiData
         return true;
     }
 
+    void readObjectForAddFrameTag(JSONObject obj)
+    { 
+        if (obj.type != JSONObject.Type.OBJECT)
+            return ;
+
+        if ((int)obj.GetField("stackLevel").n > 1) return;
+
+        for (int i = 0; i < obj.list.Count; i++)
+        {
+            string key = (string)obj.keys[i];
+            JSONObject j = (JSONObject)obj.list[i];
+
+            if (key == "children" && j.type == JSONObject.Type.ARRAY)
+            {
+                foreach (JSONObject childJson in j.list)
+                {
+                    if ((int)obj.GetField("stackLevel").n == 0) {
+                        float begintime = (float)childJson.GetField("begintime").f;
+
+                        if ((int)childJson.GetField("stackLevel").n == 1 && begintime > frameTagTimeAccumulated + frameTagInterval)
+                        {
+                            JSONObject newObj = new JSONObject();
+                            newObj.AddField("frameID", frameTagID++);
+                            newObj.AddField("frameTime", begintime);
+                            newObj.AddField("frameUnityTime", begintime);
+                            addFrameTagList.Add(newObj);
+                            frameTagTimeAccumulated = begintime;
+                        }
+                    }
+                    readObjectForAddFrameTag(childJson);
+                }
+            }
+        }
+    }
+
     bool readObject(JSONObject obj, HanoiNode node)
     {
         if (obj.type != JSONObject.Type.OBJECT)
             return false;
 
+        bool isFrameTagInfo = obj.GetField("frameTime");
+        if (isFrameTagInfo)
+        {
+            FrameTagInfo addFrameObj = new FrameTagInfo();
+            addFrameObj.frameTime = obj.GetField("frameTime").f;
+            addFrameObj.frameUnityTime = obj.GetField("frameUnityTime").f;
+            addFrameObj.frameID = (int)obj.GetField("frameID").n;
+            FrameTagInfoList.Add(addFrameObj);
+        }
+        
         for (int i = 0; i < obj.list.Count; i++)
         {
             string key = (string)obj.keys[i];
