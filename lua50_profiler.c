@@ -16,6 +16,7 @@ lua50_profiler.c:
 #include "clocks.h"
 #include "core_profiler.h"
 #include "function_meter.h"
+#include "stack.h"
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -196,6 +197,18 @@ static int profiler_stop(lua_State *L) {
   return 1;
 }
 
+static int profiler_frame(lua_State* L)
+{
+	double arg1, arg2;
+	if (lua_gettop(L) >= 2)
+	{
+		arg1 = luaL_checknumber(L, 1);
+		arg2 = luaL_checknumber(L, 2);
+		lprofT_frame(arg1, arg2);
+		return 1;
+	}
+}
+
 /* calculates the approximate time Lua takes to call a function */
 static float calcCallTime(lua_State *L) {
   clock_t timer;
@@ -255,7 +268,8 @@ int profiler_open(lua_State *L)
 	lua_register(L, "profiler_pause", profiler_pause);
 	lua_register(L, "profiler_resume", profiler_resume);
 	lua_register(L, "profiler_stop", profiler_stop);
-
+	lua_register(L, "profiler_frame", profiler_frame);
+	lprofT_init();
 	return 1;
 }
 

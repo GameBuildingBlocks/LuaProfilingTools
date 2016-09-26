@@ -35,6 +35,7 @@ char* pOutput = NULL;
 int   nMaxStackLevel = 0;
 int   nTotalCall = 0;
 double dTotalTimeConsuming = 0.0;
+double dFrameInterval = 0.0;
 int   nOutputCount = 0;
 long node_size = 0;
 int first_flush = 1;
@@ -42,6 +43,9 @@ int first_flush = 1;
 FILE* outf;
 LARGE_INTEGER time_maker_golbal_begin;
 LARGE_INTEGER time_maker_golbal_end;
+LARGE_INTEGER time_maker_golbal_init;
+
+cJSON* treeTojson(lprofT_NODE* p);
 
 void output(const char *format, ...) {
 	va_list ap;
@@ -153,7 +157,7 @@ void lprofT_add(lprofS_STACK pChild)
 #else
 	if (time_maker_golbal_begin.tv_usec <= 0 || time_maker_golbal_begin.tv_sec <= 0)
 #endif
-		lprofC_start_timer2(&time_maker_golbal_begin);
+	lprofC_start_timer2(&time_maker_golbal_begin);
 	nTotalCall++;
 	lprofT_NODE* p = lprofT_createNode(1);
 	p->pNode = pChild;
@@ -284,6 +288,7 @@ void lprofT_free(lprofT_NODE* p)
 	
 }
 
+/*
 cJSON* treeTojson2(lprofT_NODE* p)
 {
 	assert(p);
@@ -319,7 +324,35 @@ cJSON* treeTojson2(lprofT_NODE* p)
 	}
 	return root;
 }
+*/
 
+void lprofT_tojson()
+{
+	if (pTreeRoot)
+	{
+		cJSON* root = treeTojson(pTreeRoot);
+		char *jstring = cJSON_Print(root);
+		output(jstring);
+		cJSON_Delete(root);
+		free(jstring);
+		//nTotalCall = 0;
+		//dTotalTimeConsuming = 0.0;
+		pTreeRoot = NULL;
+#ifdef _MSC_VER
+		time_maker_golbal_begin.QuadPart = 0;
+		time_maker_golbal_end.QuadPart = 0;
+#else
+		time_maker_golbal_begin.tv_sec = 0;
+		time_maker_golbal_begin.tv_usec = 0;
+
+		time_maker_golbal_end.tv_sec = 0;
+		time_maker_golbal_end.tv_usec = 0;
+#endif	
+	}
+
+}
+
+/*
 void lprofT_tojson2()
 {
 	if (pTreeRoot)
@@ -339,7 +372,9 @@ void lprofT_tojson2()
 		output(",");
 	}
 }
+*/
 
+/*
 void lprofT_close()
 {
 	cJSON* root = cJSON_CreateObject();
@@ -354,6 +389,7 @@ void lprofT_close()
 	first_flush = 1;
 	output("]");
 }
+*/
 
 cJSON* treeTojson(lprofT_NODE* p)
 {
@@ -361,18 +397,18 @@ cJSON* treeTojson(lprofT_NODE* p)
 	cJSON* root = NULL;
 	if (p && p->pNode)
 	{
-		//double beginTime = lprofC_get_millisecond(&p->pNode->time_maker_local_time_begin);
-		//double endTime = lprofC_get_millisecond(&p->pNode->time_maker_local_time_end);
-		double beginTime = lprofC_get_interval(&time_maker_golbal_begin,&p->pNode->time_maker_local_time_begin);
-		double endTime = lprofC_get_interval(&time_maker_golbal_begin,&p->pNode->time_maker_local_time_end);
+		double beginTime = lprofC_get_millisecond(&p->pNode->time_maker_local_time_begin);
+		double endTime = lprofC_get_millisecond(&p->pNode->time_maker_local_time_end);
+		//double beginTime = lprofC_get_interval(&time_maker_golbal_begin,&p->pNode->time_maker_local_time_begin);
+		//double endTime = lprofC_get_interval(&time_maker_golbal_begin,&p->pNode->time_maker_local_time_end);
 		double consumingTimer = lprofC_get_interval(&p->pNode->time_maker_local_time_begin, &p->pNode->time_maker_local_time_end);
 		root = cJSON_CreateObject();
 		cJSON_AddItemToObject(root, "currentLine", cJSON_CreateNumber(p->pNode->current_line));
 		cJSON_AddItemToObject(root, "lineDefined", cJSON_CreateNumber(p->pNode->line_defined));
-		//cJSON_AddItemToObject(root, "timeConsuming", cJSON_CreateNumber(consumingTimer));
-		cJSON_AddItemToObject(root, "timeConsuming", cJSON_CreateNumber(p->pNode->local_time));
+		cJSON_AddItemToObject(root, "timeConsuming", cJSON_CreateNumber(consumingTimer));
+		//cJSON_AddItemToObject(root, "timeConsuming", cJSON_CreateNumber(p->pNode->local_time));
 		cJSON_AddItemToObject(root, "stackLevel", cJSON_CreateNumber(p->pNode->stack_level));
-		cJSON_AddItemToObject(root, "interval", cJSON_CreateNumber(p->pNode->interval_time));
+		//cJSON_AddItemToObject(root, "interval", cJSON_CreateNumber(p->pNode->interval_time));
 		cJSON_AddItemToObject(root, "callType", cJSON_CreateString(p->pNode->what));
 		cJSON_AddItemToObject(root, "begintime", cJSON_CreateNumber(beginTime));
 		cJSON_AddItemToObject(root, "endtime", cJSON_CreateNumber(endTime));
@@ -406,6 +442,7 @@ cJSON* treeTojson(lprofT_NODE* p)
 		
 		lprofT_free(p);
 	}
+	/*
 	else if (p->stack_level == 0)
 	{
 		double begin = lprofC_get_millisecond(&time_maker_golbal_begin);
@@ -440,6 +477,7 @@ cJSON* treeTojson(lprofT_NODE* p)
 			cJSON_AddItemToObject(pChild, "callStats", treeTojson(p->ppChild[i]));
 	
 	}
+	*/
 	return root;
 }
 
@@ -478,31 +516,14 @@ cJSON* treeTojson2(lprofT_NODE* p)
 	return root;
 }
 
-void lprofT_tojson()
-{
-	cJSON* root = treeTojson(pTopRoot);
-	char *jstring = cJSON_Print(root);	
-	output(jstring);
-	cJSON_Delete(root);	
-	free(jstring);
-	nTotalCall = 0;
-	dTotalTimeConsuming = 0.0;
-#ifdef _MSC_VER
-	time_maker_golbal_begin.QuadPart = 0;
-	time_maker_golbal_end.QuadPart = 0;
-#else
-	time_maker_golbal_begin.tv_sec = 0;
-	time_maker_golbal_begin.tv_usec = 0;
 
-	time_maker_golbal_end.tv_sec = 0;
-	time_maker_golbal_end.tv_usec = 0;
-#endif	
-}
 
 void lprofT_close()
 {
 	cJSON* root = cJSON_CreateObject();
-	cJSON_AddItemToObject(root, "totaltimeConsuming", cJSON_CreateNumber(dTotalTimeConsuming));
+	double initTime = lprofC_get_millisecond(&time_maker_golbal_init);
+	cJSON_AddItemToObject(root, "inittime", cJSON_CreateNumber(initTime));
+	cJSON_AddItemToObject(root, "totalCalltimeConsuming", cJSON_CreateNumber(dTotalTimeConsuming));
 	cJSON_AddItemToObject(root, "totalCalls", cJSON_CreateNumber(nTotalCall));
 	char *jstring = cJSON_Print(root);
 	output(jstring);
@@ -510,4 +531,46 @@ void lprofT_close()
 	free(jstring);
 	nTotalCall = 0;
 	dTotalTimeConsuming = 0.0;
+	pTreeRoot = NULL;
+	dFrameInterval = 0;
+}
+
+cJSON* frameTojson(int id ,int unitytime)
+{
+	cJSON* root = NULL;
+	double frametime = lprofC_get_seconds2(&time_maker_golbal_init);
+	root = cJSON_CreateObject();
+	cJSON_AddItemToObject(root, "frameID", cJSON_CreateNumber(id));
+	cJSON_AddItemToObject(root, "frameTime", cJSON_CreateNumber(frametime));
+	cJSON_AddItemToObject(root, "frameUnityTime", cJSON_CreateNumber(unitytime));
+	double dInterval = frametime - dFrameInterval;
+	if (dFrameInterval > 0)
+	{
+		cJSON_AddItemToObject(root, "frameInterval", cJSON_CreateNumber(dInterval));
+	}
+	else
+	{
+		cJSON_AddItemToObject(root, "frameInterval", cJSON_CreateNumber(0.0));
+	}
+	dFrameInterval = frametime;
+	return root;
+	
+}
+
+void lprofT_frame(int id, int unitytime)
+{
+	cJSON* root = frameTojson(id,unitytime);
+	if (root)
+	{
+		char *jstring = cJSON_Print(root);
+		output(jstring);
+		cJSON_Delete(root);
+		free(jstring);
+	}
+
+}
+
+void lprofT_init()
+{
+	lprofC_start_timer2(&time_maker_golbal_init);
 }

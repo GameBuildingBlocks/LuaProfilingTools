@@ -132,8 +132,11 @@ int lprofP_callhookOUT(lprofP_STATE* S) {
 	info = lprofM_leave_function(S, 0);
 
 	if (S->stack_level == 0)
-		lprofT_tojson2();
-		//lprofT_print();
+	{
+		lprofT_tojson();
+	//lprofT_tojson2();
+	//lprofT_print();
+	}
 	/* writing a log may take too long to be computed with the function's time ...*/
 	/*lprofM_pause_total_time(S);
 	//info->local_time += function_call_time;

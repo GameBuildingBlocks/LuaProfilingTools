@@ -66,17 +66,19 @@ struct lprofP_sSTATE {
 void lprofS_push(lprofS_STACK *p, lprofS_STACK_RECORD r);
 lprofS_STACK_RECORD lprofS_pop(lprofS_STACK *p);
 
-
+void lprofT_init();
 void lprofT_add(lprofS_STACK pChild);
 void lprofT_pop();
 void lprofT_output(lprofT_NODE* p);
 void lprofT_print();
+void lprofT_frame(int id,int unitytime);
 lprofT_NODE* lprofT_createNode(int count);
 void lprofT_addchild(lprofT_NODE* pParent, lprofT_NODE* pChild);
 void lprofT_free(lprofT_NODE* p);
 void output(const char *format, ...);
 void lprofT_tojson();
-void lprofT_tojson2();
+//void lprofT_tojson2(lprofT_NODE* p);
+//void lprofT_tojson(lprofT_NODE* p);
 //void lprofT_tojson_thread();
 void lprofT_close();
 
