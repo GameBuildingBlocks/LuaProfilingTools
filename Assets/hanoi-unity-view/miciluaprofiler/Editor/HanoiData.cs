@@ -345,19 +345,19 @@ public class HanoiData
                     HanoiNode child = new HanoiNode(node);
                     if (readObject(childJson, child))
                     {
-                        if (isOnStackZero)
-                        {
-                            double interval = child.beginTime - lastStackOneEnd;
-                            if (lastStackOneEnd > 0 && interval > HanoiConst.ShrinkThreshold)
-                            {
-                                HanoiBlankSpace bspace = new HanoiBlankSpace(node);
-                                bspace.stackLevel = 1;
-                                bspace.beginTime = lastStackOneEnd;
-                                bspace.endTime = child.beginTime;
-                                bspace.timeConsuming = bspace.endTime - bspace.beginTime;
-                                node.Children.Add(bspace);
-                            }
-                        }
+                        //if (isOnStackZero)
+                        //{
+                        //    double interval = child.beginTime - lastStackOneEnd;
+                        //    if (lastStackOneEnd > 0 && interval > HanoiConst.ShrinkThreshold)
+                        //    {
+                        //        HanoiBlankSpace bspace = new HanoiBlankSpace(node);
+                        //        bspace.stackLevel = 1;
+                        //        bspace.beginTime = lastStackOneEnd;
+                        //        bspace.endTime = child.beginTime;
+                        //        bspace.timeConsuming = bspace.endTime - bspace.beginTime;
+                        //        node.Children.Add(bspace);
+                        //    }
+                        //}
 
                         node.Children.Add(child);
 
