@@ -115,9 +115,7 @@
          private bool checkMouseXInBlackSpace(HanoiNode n, float mouseX)
          {
              HanoiUtil.DrawingShrinkedAccumulated = 0;
-             HanoiUtil.ISMouseInBlankSpace = false;
-             HanoiUtil.checkMouseXInBlankSpace(n,mouseX);
-             return HanoiUtil.ISMouseInBlankSpace;
+             return HanoiUtil.isMouseXInBlankSpace(n, mouseX);
          }
 
          /// <summary>
@@ -300,8 +298,14 @@
                          // Scale multiplier. Don't allow scale of zero or below!
                          float scale = Mathf.Max(0.1F, 1 + delta * 0.1F);
 
+                         HanoiUtil.DrawingBlackSpaceNum = 0;
+                         HanoiUtil.DrawingShrinkedAccumulated = 0;
+                         HanoiUtil.MouseXOnBlankSpaceIndex = 0;
+                         HanoiUtil.MouseXInBlankSpaceSkewing = 0;
+                         HanoiUtil.checkMouseXInScroolWheelSkewing(m_data.Root.callStats, mousePositionInDrawing.x);
+
                          // Offset to make zoom centered around cursor position
-                         m_Translation.x -= (mousePositionInDrawing.x - getBlackSpaceShrinkedWidth()) * (scale - 1) * m_Scale.x;
+                         m_Translation.x -= (mousePositionInDrawing.x - HanoiUtil.MouseXOnBlankSpaceIndex * HanoiVars.BlankSpaceWidth + HanoiUtil.MouseXInBlankSpaceSkewing) * (scale - 1) * m_Scale.x;
                          
                          // Apply zooming
                          m_Scale.x *= scale;
@@ -313,15 +317,6 @@
                  default:
                      break;
              }
-         }
-
-         private float getBlackSpaceShrinkedWidth() {
-             HanoiUtil.DrawingBlackSpaceNum = 0;
-             HanoiUtil.DrawingShrinkedAccumulated = 0;
-             HanoiUtil.MouseXOnBlankSpaceIndex = 0;
-             HanoiUtil.MouseXInBlankSpaceSkewing = 0;
-             HanoiUtil.checkMouseXInScroolWheelSkewing(m_data.Root.callStats, mousePositionInDrawing.x);
-             return HanoiUtil.MouseXOnBlankSpaceIndex * HanoiVars.BlankSpaceWidth - HanoiUtil.MouseXInBlankSpaceSkewing;
          }
 
          private HanoiNode PickHanoiRecursively(HanoiNode n, Vector2 mousePos)

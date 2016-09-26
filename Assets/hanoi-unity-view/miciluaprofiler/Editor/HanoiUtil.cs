@@ -36,7 +36,6 @@ public class HanoiUtil
 
     //全局时间转为修正坐标的修正值
     static public float GlobalTimeXToShrinkedPosXSkewing = 0.0f;
-    static public bool ISMouseInBlankSpace = false;
     /// <summary>
     /// 检测鼠标X坐标在第几个黑块后面
     /// 如果鼠标X坐标点击在黑块中，计算鼠标坐标在黑块中的偏移坐标
@@ -72,7 +71,7 @@ public class HanoiUtil
     }
 
 
-    public static void checkMouseXInBlankSpace(HanoiNode n, float mouseX)
+    public static bool isMouseXInBlankSpace(HanoiNode n, float mouseX)
     {
         if (n is HanoiBlankSpace)
         {
@@ -82,8 +81,7 @@ public class HanoiUtil
                 //如果鼠标X在黑块中间
                 if (mouseX < n.beginTime - DrawingShrinkedAccumulated + HanoiVars.BlankSpaceWidth)
                 {
-                    ISMouseInBlankSpace = true;
-                    return ;
+                    return true;
                 }
             }
             HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
@@ -93,9 +91,13 @@ public class HanoiUtil
         {
             for (int i = 0; i < n.Children.Count; i++)
             {
-                checkMouseXInBlankSpace(n.Children[i], mouseX);
+                if (isMouseXInBlankSpace(n.Children[i], mouseX))
+                {
+                    return true;
+                }
             }
         }
+        return false;
     }
 
 
