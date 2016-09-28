@@ -527,6 +527,7 @@ cJSON* treeTojson2(lprofT_NODE* p)
 
 void lprofT_close()
 {
+	/*
 	cJSON* root = cJSON_CreateObject();
 	lprofC_start_timer2(&time_maker_golbal_stop);
 	double startTime = lprofC_get_interval(&time_maker_golbal_start,&time_maker_golbal_start);
@@ -544,6 +545,7 @@ void lprofT_close()
 	output(jstring);
 	cJSON_Delete(root);
 	free(jstring);
+	*/
 	nTotalCall = 0;
 	dTotalTimeConsuming = 0.0;
 	pTreeRoot = NULL;
