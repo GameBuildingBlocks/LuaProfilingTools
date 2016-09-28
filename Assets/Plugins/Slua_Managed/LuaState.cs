@@ -93,7 +93,8 @@ namespace SLua
 				{
 					LuaDLL.lua_unref(l, r);
 				};
-				state.gcRef(act, valueref);
+                if (state != null)
+				    state.gcRef(act, valueref);
 				valueref = 0;
 			}
 		}
@@ -335,7 +336,7 @@ namespace SLua
 		{
 			get
 			{
-				return state.getObject(valueref, key);
+				return state != null ? state.getObject(valueref, key) : null;
 			}
 
 			set
@@ -348,7 +349,7 @@ namespace SLua
 		{
 			get
 			{
-				return state.getObject(valueref, index);
+				return state != null ? state.getObject(valueref, index) : null;
 			}
 
 			set
@@ -487,6 +488,11 @@ namespace SLua
 				l_ = value;
 			}
 		}
+
+        public bool IsLValid
+        {
+            get { return l_ != IntPtr.Zero; }
+        }
 
 		public IntPtr handle
 		{

@@ -10,7 +10,7 @@ public class Lua
 {
     private static Lua m_Instance = null;
 
-    private LuaSvr m_LuaSvr = null;
+    public LuaSvr m_LuaSvr = null;
 
     private string m_strPath = Application.temporaryCachePath;
     public static Lua Instance
@@ -53,7 +53,7 @@ public class Lua
 
     public void SetFrameInfo()
     {
-        object o = m_LuaSvr.luaState.getFunction("profiler_frame").call(Time.frameCount, System.DateTime.Now.Millisecond);
+        LuaDLL.frame_profiler(Time.frameCount, System.DateTime.Now.Millisecond);
     }
 
      string[] GetSysDirector(string dir)

@@ -1,6 +1,6 @@
 
 function start()
-	profiler_start("d://test_slua_profiler.json")
+	foo(1,2,3)
 end
 
 function main()
@@ -12,5 +12,4 @@ function foo(a,b,c)
 end
 
 function stop()
-	profiler_stop()
 end

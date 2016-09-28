@@ -90,6 +90,9 @@ namespace LuaInterface
         public static extern void init_profiler(IntPtr L);
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void frame_profiler(int id,int time);
+
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void luaS_openextlibs(IntPtr L);
 
         // Thread Funcs

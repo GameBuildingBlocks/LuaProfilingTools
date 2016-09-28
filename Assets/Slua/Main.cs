@@ -48,11 +48,17 @@ public class Main : MonoBehaviour
         */
     }
 
+    void Update()
+    {
+        if (isStarted)
+            Lua.Instance.SetFrameInfo();
+    }
+
 	void OnGUI()
 	{
 		if(progress!=100)
 			GUI.Label(new Rect(0, 0, 100, 50), string.Format("Loading {0}%", progress));
-	}
+    }
 
     public void onClickStart()
     {
@@ -70,7 +76,8 @@ public class Main : MonoBehaviour
     {
         if(isStarted)
         {
-            Lua.Instance.SetFrameInfo();
+            Lua.Instance.m_LuaSvr.start("main");
+            object o = Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
         }
     }
 
