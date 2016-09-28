@@ -14,5 +14,7 @@ luaprofiler.h:
 
 DLL_API void init_profiler(lua_State *L);
 
+DLL_API void frame_profiler(int id, int unitytime);
+
 DLL_API int add_profiler(int x,int y);
 

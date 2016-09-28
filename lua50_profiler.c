@@ -126,7 +126,7 @@ static int profiler_init(lua_State *L) {
   lprofP_STATE* S;
   const char* outfile;
   float function_call_time;
-
+  lprofT_start();
   lua_pushlightuserdata(L, &profstate_id);
   lua_gettable(L, LUA_REGISTRYINDEX);
   if(!lua_isnil(L, -1)) {
@@ -144,7 +144,6 @@ static int profiler_init(lua_State *L) {
   if (!(S=lprofP_init_core_profiler(outfile, 1, function_call_time))) {
     return luaL_error(L,"LuaProfiler error: output file could not be opened!");
   }
-
   lua_sethook(L, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
 
   lua_pushlightuserdata(L, &profstate_id);
@@ -172,7 +171,7 @@ static int profiler_init(lua_State *L) {
   /* the following statement is to simulate how the execution stack is */
   /* supposed to be by the time the profiler is activated when loaded  */
   /* as a library.                                                     */
-
+  
   lprofP_callhookIN(S, "profiler_init", "(C)", -1, -1,"C");
 	
   lua_pushboolean(L, 1);
@@ -199,7 +198,7 @@ static int profiler_stop(lua_State *L) {
 
 static int profiler_frame(lua_State* L)
 {
-	double arg1, arg2;
+	int arg1, arg2;
 	if (lua_gettop(L) >= 2)
 	{
 		arg1 = luaL_checknumber(L, 1);
@@ -269,7 +268,7 @@ int profiler_open(lua_State *L)
 	lua_register(L, "profiler_resume", profiler_resume);
 	lua_register(L, "profiler_stop", profiler_stop);
 	lua_register(L, "profiler_frame", profiler_frame);
-	lprofT_init();
+	
 	return 1;
 }
 
@@ -277,9 +276,10 @@ int profiler_open(lua_State *L)
 DLL_API void init_profiler(lua_State *L)
 {
 	profiler_open(L);
+	//lprofT_init();
 }
 
-DLL_API int add_profiler(int x,int y)
+DLL_API void frame_profiler(int id,int unitytime)
 {
-	return x + y;
+	lprofT_frame(id, unitytime);
 }
