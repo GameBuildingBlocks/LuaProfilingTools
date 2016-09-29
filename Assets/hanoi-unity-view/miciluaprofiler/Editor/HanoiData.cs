@@ -53,7 +53,7 @@ public class HanoiNode
     public Rect renderRect;
 
     public bool highlighted = false;
-
+    public bool isFrameShriked = false;
 
     public Color GetNodeColor()
     {
@@ -81,6 +81,19 @@ public class HanoiBlankSpace : HanoiNode
     }
 }
 
+public class FrameTagInfo 
+{
+    public int frameID =0;
+    public float frameTime = 0.0f;
+    public float frameUnityTime = 0.0f;
+    public bool isHighLight = false;
+    public FrameTagInfo()
+    {
+    }
+}
+
+
+
 public class HanoiData 
 {
     public HanoiRoot Root { get { return m_hanoiData; } }
@@ -91,8 +104,16 @@ public class HanoiData
     JSONObject m_json;
     HanoiRoot m_hanoiData;
 
+    float frameTagTimeAccumulated = 0.0f;
+    float frameTagInterval = 0.0f;
+    public int frameTagID = 1;
+    public List<JSONObject> addFrameTagList = new List<JSONObject>();
+    public static List<FrameTagInfo> FrameTagInfoList = new List<FrameTagInfo>();
+    
+
     public bool Load(string filename)
     {
+        addFrameTagList.Clear();
         try
         {
             string text = System.IO.File.ReadAllText(filename);
@@ -215,11 +236,56 @@ public class HanoiData
         return true;
     }
 
+    void readObjectForAddFrameTag(JSONObject obj)
+    { 
+        if (obj.type != JSONObject.Type.OBJECT)
+            return ;
+
+        if ((int)obj.GetField("stackLevel").n > 1) return;
+
+        for (int i = 0; i < obj.list.Count; i++)
+        {
+            string key = (string)obj.keys[i];
+            JSONObject j = (JSONObject)obj.list[i];
+
+            if (key == "children" && j.type == JSONObject.Type.ARRAY)
+            {
+                foreach (JSONObject childJson in j.list)
+                {
+                    if ((int)obj.GetField("stackLevel").n == 0) {
+                        float begintime = (float)childJson.GetField("begintime").f;
+
+                        if ((int)childJson.GetField("stackLevel").n == 1 && begintime > frameTagTimeAccumulated + frameTagInterval)
+                        {
+                            JSONObject newObj = new JSONObject();
+                            newObj.AddField("frameID", frameTagID++);
+                            newObj.AddField("frameTime", begintime);
+                            newObj.AddField("frameUnityTime", begintime);
+                            addFrameTagList.Add(newObj);
+                            frameTagTimeAccumulated = begintime;
+                        }
+                    }
+                    readObjectForAddFrameTag(childJson);
+                }
+            }
+        }
+    }
+
     bool readObject(JSONObject obj, HanoiNode node)
     {
         if (obj.type != JSONObject.Type.OBJECT)
             return false;
 
+        bool isFrameTagInfo = obj.GetField("frameTime");
+        if (isFrameTagInfo)
+        {
+            FrameTagInfo addFrameObj = new FrameTagInfo();
+            addFrameObj.frameTime = obj.GetField("frameTime").f;
+            addFrameObj.frameUnityTime = obj.GetField("frameUnityTime").f;
+            addFrameObj.frameID = (int)obj.GetField("frameID").n;
+            FrameTagInfoList.Add(addFrameObj);
+        }
+        
         for (int i = 0; i < obj.list.Count; i++)
         {
             string key = (string)obj.keys[i];
@@ -284,19 +350,19 @@ public class HanoiData
                     HanoiNode child = new HanoiNode(node);
                     if (readObject(childJson, child))
                     {
-                        if (isOnStackZero)
-                        {
-                            double interval = child.beginTime - lastStackOneEnd;
-                            if (lastStackOneEnd > 0 && interval > HanoiConst.ShrinkThreshold)
-                            {
-                                HanoiBlankSpace bspace = new HanoiBlankSpace(node);
-                                bspace.stackLevel = 1;
-                                bspace.beginTime = lastStackOneEnd;
-                                bspace.endTime = child.beginTime;
-                                bspace.timeConsuming = bspace.endTime - bspace.beginTime;
-                                node.Children.Add(bspace);
-                            }
-                        }
+                        //if (isOnStackZero)
+                        //{
+                        //    double interval = child.beginTime - lastStackOneEnd;
+                        //    if (lastStackOneEnd > 0 && interval > HanoiConst.ShrinkThreshold)
+                        //    {
+                        //        HanoiBlankSpace bspace = new HanoiBlankSpace(node);
+                        //        bspace.stackLevel = 1;
+                        //        bspace.beginTime = lastStackOneEnd;
+                        //        bspace.endTime = child.beginTime;
+                        //        bspace.timeConsuming = bspace.endTime - bspace.beginTime;
+                        //        node.Children.Add(bspace);
+                        //    }
+                        //}
 
                         node.Children.Add(child);
 
