@@ -8,8 +8,8 @@
          internal Vector2 m_Scale = new Vector2(1.0f, 1.0f);
          [SerializeField]
          internal Vector2 m_Translation = new Vector2(0, 0);
-         float m_winWidth = 0.0f;
-         float m_winHeight = 0.0f;
+         public static float m_winWidth = 0.0f;
+         public static float m_winHeight = 0.0f;
 
          HanoiData m_data = new HanoiData();
          HanoiNode m_picked;
@@ -27,13 +27,11 @@
 
          public VisualizerWindow()
          {
-             //m_data.addFrameTag("Assets/hanoi-unity-view/luaprofiler_jx3pocket.json",
-             //    "Assets/hanoi-unity-view/luaprofiler_jx3pocket_out.json");
-
              bool succ = m_data.Load("Assets/hanoi-unity-view/luaprofiler_jx3pocket_out.json");
              if (succ)
              {
-                 HanoiUtil.TotalTimeConsuming = (float)m_data.Root.callStats.timeConsuming;
+                 HanoiUtil.TotalTimeConsuming = HanoiUtil.calculateTotalTimeConsuming(m_data.Root.callStats);
+                 HanoiUtil.CalculateFrameInterval(m_data.Root.callStats,null);
              }
          }
 
@@ -45,10 +43,9 @@
              Handles.matrix = Matrix4x4.TRS(m_Translation, Quaternion.identity, new Vector3(m_Scale.x, m_Scale.y, 1));
 
              calculateScreenClipRange();
-             drawFrameInfo(mousePositionInDrawing.x);
+             drawFrameInfo(m_data.Root.callStats,mousePositionInDrawing.x);
              DrawHanoiData(m_data.Root);
              drawTimeInterval();
-
              showMouseGlobalTime();
              Handles.EndGUI();
              Repaint();
@@ -59,60 +56,14 @@
          /// </summary>
          public void calculateScreenClipRange()
          {
-             HanoiUtil.ScreenClipRange.x=ViewToDrawingTransformValue(0.0f);   
-             HanoiUtil.ScreenClipRange.y=ViewToDrawingTransformValue(m_winWidth);
+             HanoiUtil.ScreenClipMinX=ViewToDrawingTransformValue(0.0f);   
+             HanoiUtil.ScreenClipMaxX=ViewToDrawingTransformValue(m_winWidth);
          }
 
-         private void drawFrameInfo(float mouseX) {
-             if (mouseX < HanoiData.FrameTagInfoList[0].frameTime || mouseX > HanoiData.FrameTagInfoList[HanoiData.FrameTagInfoList.Count-1].frameTime) return;
-             bool isShowFrameInfoAlready =false;
-             int  setNextFrameHighlightIndex = -1;
-             for (int i = 0; i < HanoiData.FrameTagInfoList.Count; i++)
-             {
-                float beginPosX = 0;
-                if (i == 0)
-                {
-                    beginPosX = HanoiData.FrameTagInfoList[i].frameTime;
-                }
-                else
-                {
-                    beginPosX = HanoiData.FrameTagInfoList[i - 1].frameTime;
-                }
-                Color preColor = Handles.color;
-                Color LineColor = Color.gray;
-                LineColor.a = 0.5f;
-                Handles.color = LineColor;
-
-                GUI.color = Color.white;
-                if (!isShowFrameInfoAlready && mouseX < HanoiData.FrameTagInfoList[i].frameTime)
-                {
-                    isShowFrameInfoAlready = true;
-                    if (i + 1 != HanoiData.FrameTagInfoList.Count)
-                        setNextFrameHighlightIndex = i + 1;
-                    Rect r = new Rect();
-                    r.position = new Vector2(beginPosX, 0);
-                    r.width = HanoiVars.LabelBackgroundWidth / 1.5f;
-                    r.height = 60;
-                    Color bg = Color.white;
-                    bg.a = 0.5f;
-                    Handles.DrawSolidRectangleWithOutline(r, bg, bg);
-                    Handles.Label(new Vector3(beginPosX, 0), string.Format("frameID:{0:0}", HanoiData.FrameTagInfoList[i-1].frameID));
-                    Handles.Label(new Vector3(beginPosX, 15), string.Format("frameTime:{0:0.00}", HanoiData.FrameTagInfoList[i-1].frameTime));
-                    Handles.Label(new Vector3(beginPosX, 30), string.Format("frameUnityTime:{0:0.00}", HanoiData.FrameTagInfoList[i-1].frameUnityTime));
-                    if (i == 0)
-                    {
-                        Handles.Label(new Vector3(beginPosX, 45), string.Format("frameInterval:{0:0.00}", HanoiData.FrameTagInfoList[i].frameTime));
-                    }
-                    else {
-                        Handles.Label(new Vector3(beginPosX, 45), string.Format("frameInterval:{0:0.00}", HanoiData.FrameTagInfoList[i].frameTime - HanoiData.FrameTagInfoList[i - 1].frameTime));
-                    }
-                    Handles.color = Color.green;
-                }
-                if (i == setNextFrameHighlightIndex)
-                    Handles.color = Color.green;
-                Handles.DrawLine(new Vector3(beginPosX, 0), new Vector3(beginPosX, m_winHeight));
-                Handles.color = preColor;
-              }
+         private void drawFrameInfo(HanoiNode n,float mouseX)
+         {
+             HanoiUtil.DrawFrameStatementRecursively(n);
+             HanoiUtil.DrawSelectedFrameInfoRecursively(n,mouseX);
          }
 
          /// <summary>
@@ -137,23 +88,41 @@
          private void drawTimeInterval() {
              float timeLineHight = m_winHeight - m_winHeight / 40; 
              Handles.color = Color.white;
-             float timeInterval = getTimeInterval();
-             int timeFrameNum = (int)(HanoiUtil.TotalTimeConsuming / getTimeInterval());
-             for (int i = 0; i < timeFrameNum; i++)
+             GUI.color = Color.yellow;
+             float timeInterval = getTimeInterval(HanoiUtil.ScreenClipMinX,HanoiUtil.ScreenClipMaxX);
+
+             timeInterval = Mathf.Max(timeInterval,0.001f);
+             List<float> timeIntervalPosXList = new List<float>();
+             float baseNum= (int)(HanoiUtil.ScreenClipMinX / timeInterval) * timeInterval;
+             while (baseNum<HanoiUtil.ScreenClipMaxX)
              {
-                 if (HanoiUtil.IsTimeRangeInScreenClipRange(i * timeInterval, i * timeInterval))
-                 {
-                     Handles.DrawLine(new Vector3(i * timeInterval, timeLineHight), new Vector3(i * timeInterval, m_winHeight));
-                     Handles.Label(new Vector3(i * timeInterval, timeLineHight), string.Format("{0:0.00}", i * timeInterval));
-                 }
+                 timeIntervalPosXList.Add(baseNum);
+                 baseNum += timeInterval;
+             }
+
+             foreach(float posX  in timeIntervalPosXList){
+                 Handles.DrawLine(new Vector3(posX, timeLineHight), new Vector3(posX, m_winHeight));
+                 Handles.Label(new Vector3(posX, timeLineHight), string.Format("{0:0.00}",posX));
              }
          }
 
          /// <summary>
          ///  获得帧间时间的显示间隔
          /// </summary>
-         private float getTimeInterval() {
-             return (HanoiUtil.ScreenClipRange.y - HanoiUtil.ScreenClipRange.x) / 10;
+         private float getTimeInterval(float x0, float x1) {
+             float screenClipDelta = x1 - x0;
+             if (screenClipDelta < 0.1)
+             {
+                 return 0.01f;
+             }
+
+             float interval = 10000;
+             while (screenClipDelta < interval * 3.0f)
+             {
+                 interval /= 10;
+             }
+   
+            return interval;
          }
 
          /// <summary>
@@ -232,7 +201,9 @@
                          HanoiNode picked = PickHanoiRecursively(m_data.Root.callStats, mousePositionInDrawing);
                          if (picked != null)
                          {
-                             HanoiUtil.ForeachInParentChain(picked, (n) => { n.highlighted = true; });
+                             HanoiUtil.ForeachInParentChain(picked, (n) => { 
+                                 n.highlighted = true; 
+                             });
                              m_picked = picked;
 
                              Debug.LogFormat("Picked: f {0}, m {1}", m_picked.funcName, m_picked.moduleName);
@@ -279,14 +250,13 @@
 
          private HanoiNode PickHanoiRecursively(HanoiNode n, Vector2 mousePos)
          {
-             if (!n.HasValidRect())
-                 return null;
+             if (n.HasValidRect()) {
+                 if (n.renderRect.xMin > mousePos.x || n.renderRect.xMax < mousePos.x)
+                     return null;
 
-             if (n.renderRect.xMin > mousePos.x || n.renderRect.xMax < mousePos.x)
-                 return null;
-
-             if (n.renderRect.Contains(mousePos))
-                 return n;
+                 if (n.renderRect.Contains(mousePos))
+                     return n;
+             }
 
              for (int i = 0; i < n.Children.Count; i++)
              {
