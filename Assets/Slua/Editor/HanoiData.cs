@@ -99,7 +99,7 @@ public class HanoiData
     {
         try
         {
-            string templateJsonText = System.IO.File.ReadAllText("Assets/hanoi-unity-view/luaprofiler_jsonObjTemplates.json");
+            string templateJsonText = System.IO.File.ReadAllText("Assets/Resources/luaprofiler_jsonObjTemplates.json");
             string text = System.IO.File.ReadAllText(filename);
             m_json = new JSONObject(templateJsonText.Replace("$$", text));
 
