@@ -27,7 +27,7 @@
 
          public VisualizerWindow()
          {
-             bool succ = m_data.Load("Assets/hanoi-unity-view/luaprofiler_jx3pocket_out.json");
+             bool succ = m_data.Load("Assets/hanoi-unity-view/luaprofiler_jx3pocket.json");
              if (succ)
              {
                  HanoiUtil.TotalTimeConsuming = HanoiUtil.calculateTotalTimeConsuming(m_data.Root.callStats);
