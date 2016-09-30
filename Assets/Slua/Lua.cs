@@ -56,7 +56,7 @@ public class Lua
         LuaDLL.frame_profiler(Time.frameCount, System.DateTime.Now.Millisecond);
     }
 
-     string[] GetSysDirector(string dir)
+     private string[] GetSysDirector(string dir)
     {
         return System.IO.Directory.GetFileSystemEntries(dir);
     }
