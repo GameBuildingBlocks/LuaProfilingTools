@@ -19,119 +19,117 @@ public class HanoiUtil
         }
     }
 
-    static public float TotalTimeConsuming = 0.0f;
-    static Dictionary<int, Color> m_colors = new Dictionary<int, Color>();
 
-    static public float ScreenClipMinX = 0.0f;
-    static public float ScreenClipMaxX = 0.0f;
+    static public float TotalTimeConsuming = 0.0f;
+    //显示全局时间时的累积缩进
+    static public float GlobalTimeShrinkedAccumulated = 0.0f;
+    static public float DrawingShrinkedAccumulated = 0.0f;
+    static public float DrawingShrinkedTotal = 0.0f;
+    static public int DrawingCounts = 0;
+    static Dictionary<int, Color> m_colors = new Dictionary<int, Color>();
+    /// 画黑块的个数
+    static public int DrawingBlackSpaceNum = 0;
+    /// 鼠标X坐标在第几个黑块后面
+    static public int MouseXOnBlankSpaceIndex = 0;
+    /// 鼠标坐标在黑块中的偏移坐标
+    static public float MouseXInBlankSpaceSkewing = 0.0f;
+    static public float MouseXInBlankSpaceSkewingAccumulated = 0.0f;
 
     /// <summary>
-    /// 检测一个时间范围，是否在屏幕剪裁范围内
+    /// 检测鼠标X坐标在第几个黑块后面
+    /// 如果鼠标X坐标点击在黑块中，计算鼠标坐标在黑块中的偏移坐标
     /// </summary>
-    public static bool IsTimeRangeInScreenClipRange(float rangeLeft,float rangeRight)
+    public static void checkMouseXInScroolWheelSkewing(HanoiNode n,float mouseX)
     {
-        //完全处于剪裁范围中
-        bool isInScreenClipMid = ScreenClipMinX <= rangeLeft && ScreenClipMaxX >= rangeRight;
-        //时间范围左边超出屏幕，右边在屏幕中
-        bool isOutScreenClipLeft = rangeLeft < ScreenClipMinX && rangeRight > ScreenClipMinX;
-        //时间范围右边超出屏幕，左边在屏幕中
-        bool isOutScreenClipRight = rangeRight > ScreenClipMaxX && rangeLeft < ScreenClipMaxX;
-        if (isInScreenClipMid || isOutScreenClipLeft || isOutScreenClipRight)
-            return true;
-        return false;
-    }
-
-
-    public static float calculateTotalTimeConsuming(HanoiNode n)
-    {
-        int count = n.Children.Count;
-        for (int i = count-1; i>0; i--)
+        if (n is HanoiBlankSpace)
         {
-            HanoiNode node = n.Children[i];
-            if (!(node is HanoiFrameInfo))
+            DrawingBlackSpaceNum++;
+            //如果鼠标X在黑块后面
+            if (mouseX >= n.beginTime - DrawingShrinkedAccumulated)
             {
-                return (float)node.endTime;
-            }
-        }
-        return 0;
-    }
-
-    public static void CalculateFrameInterval(HanoiNode n, HanoiNode preN)
-    {
-        int preFrameIndex = 0;
-        float preFrameStartTime=0.0f;
-        int count = n.Children.Count;
-        for (int i = 0; i < count;i++)
-        {
-            HanoiNode node =n.Children[i];
-            if (node is HanoiFrameInfo)
-            {
-                HanoiFrameInfo hfi = (HanoiFrameInfo)node;
-                if (preFrameStartTime>0)
+                //如果鼠标X在黑块中间
+                if (mouseX < n.beginTime - DrawingShrinkedAccumulated + HanoiVars.BlankSpaceWidth)
                 {
-                    HanoiFrameInfo hfiChild=(HanoiFrameInfo)n.Children[preFrameIndex];
-                    hfiChild.frameEndTime = hfi.frameTime;
+                    MouseXInBlankSpaceSkewing = (float)n.beginTime - DrawingShrinkedAccumulated - mouseX;
                 }
-                preFrameIndex = i;
-                preFrameStartTime = hfi.frameTime;
+                else {
+                    MouseXOnBlankSpaceIndex = DrawingBlackSpaceNum;                
+                }
+            } 
+            HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
+        }
+
+        if (n.stackLevel == 0)
+        {
+            for (int i = 0; i < n.Children.Count; i++)
+            {
+                checkMouseXInScroolWheelSkewing(n.Children[i], mouseX);
             }
         }
     }
 
-    public static void DrawSelectedFrameInfoRecursively(HanoiNode n,float mouseX)
+    public static void checkMouseXInGlobalTimeSkewing(HanoiNode n, float mouseX)
     {
-        if (n is HanoiFrameInfo)
+        if (n is HanoiBlankSpace)
         {
-            HanoiFrameInfo hfi = (HanoiFrameInfo)n;
-            Color preColor = Handles.color;
-
-            if (mouseX >= hfi.frameTime && mouseX <= hfi.frameEndTime)
+            //如果鼠标X在黑块后面
+            if (mouseX >= n.beginTime - DrawingShrinkedAccumulated)
             {
-                float beginPosX = hfi.frameEndTime;
-                Rect r = new Rect();
-                r.position = new Vector2(beginPosX, 0);
-                r.width = HanoiVars.LabelBackgroundWidth / 1.5f;
-                r.height = 60;
-                Color bg = Color.white;
-                bg.a = 0.5f;
-                Handles.DrawSolidRectangleWithOutline(r, bg, bg);
-
-                Handles.color = Color.green;
-                GUI.color = Color.black;
-                Handles.Label(new Vector3(beginPosX, 0), string.Format("frameID:{0:0}", hfi.frameID));
-                Handles.Label(new Vector3(beginPosX, 15), string.Format("frameTime:{0:0.00}", hfi.frameTime));
-                Handles.Label(new Vector3(beginPosX, 30), string.Format("frameUnityTime:{0:0.00}", hfi.frameUnityTime));
-                Handles.Label(new Vector3(beginPosX, 45), string.Format("frameInterval:{0:0.00}", hfi.frameEndTime));
-                Handles.DrawLine(new Vector3(hfi.frameTime, 0), new Vector3(hfi.frameTime, VisualizerWindow.m_winHeight));
-                Handles.DrawLine(new Vector3(hfi.frameEndTime, 0), new Vector3(hfi.frameEndTime, VisualizerWindow.m_winHeight));
+                //如果鼠标X在黑块中间
+                if (mouseX < n.beginTime - DrawingShrinkedAccumulated + HanoiVars.BlankSpaceWidth)
+                {
+                    float skewingInBlankSpace = (float)n.beginTime - DrawingShrinkedAccumulated - mouseX;
+                    MouseXInBlankSpaceSkewing = skewingInBlankSpace - (skewingInBlankSpace / HanoiVars.BlankSpaceWidth * (float)n.timeConsuming);
+                }
+                else
+                {
+                    GlobalTimeShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
+                }
             }
-          
-            Handles.color = preColor;
+            HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
         }
 
-        for (int i = 0; i < n.Children.Count; i++)
+        if (n.stackLevel == 0)
         {
-            DrawSelectedFrameInfoRecursively(n.Children[i],mouseX);
+            for (int i = 0; i < n.Children.Count; i++)
+            {
+                checkMouseXInGlobalTimeSkewing(n.Children[i], mouseX);
+            }
         }
     }
-
-    public static void DrawFrameStatementRecursively(HanoiNode n)
+    public static void DataRecursively(HanoiNode n)
     {
-        if (n is HanoiFrameInfo)
+        if (n is HanoiBlankSpace)
         {
-            HanoiFrameInfo hfi = (HanoiFrameInfo)n;
-            Color preColor = Handles.color;
-            Handles.color = Color.gray;
-            if (IsTimeRangeInScreenClipRange((float)hfi.frameTime, (float)hfi.frameTime))
+            HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
+            HanoiUtil.DrawingBlackSpaceNum++;
+        }
+        if (n.stackLevel == 0)
+        {
+            for (int i = 0; i < n.Children.Count; i++)
             {
-                Handles.DrawLine(new Vector3(hfi.frameTime, 0), new Vector3(hfi.frameTime, VisualizerWindow.m_winHeight));
+                DataRecursively(n.Children[i]);
             }
-            Handles.color = preColor;
+        }
+    }
+    public static void DrawBlankSpaceRecursively(HanoiNode n)
+    {
+        if (n is HanoiBlankSpace)
+        {
+            Color c = n.GetNodeColor();
+            c.a = 0.5f;
+            n.renderRect = new Rect((float)n.beginTime - DrawingShrinkedAccumulated, 0.0f, HanoiVars.BlankSpaceWidth, HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - 1));
+            HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
+            Handles.DrawSolidRectangleWithOutline(n.renderRect, c, c);
+            HanoiUtil.DrawingBlackSpaceNum++;
         }
 
-        for (int i = 0; i < n.Children.Count; i++)
+        if (n.stackLevel == 0)
         {
-            DrawFrameStatementRecursively(n.Children[i]);
+            for (int i = 0; i < n.Children.Count; i++)
+            {
+                DrawBlankSpaceRecursively(n.Children[i]);
+            }
         }
     }
 
@@ -143,16 +141,27 @@ public class HanoiUtil
         {
             m_colors[hash] = c = n.GetNodeColor();
         }
-        if (n is HanoiFrameInfo)
+
+        if (n is HanoiBlankSpace)
         {
+            HanoiUtil.DrawingShrinkedAccumulated += (float)n.timeConsuming - HanoiVars.BlankSpaceWidth;
         }
-        else {
-            if (IsTimeRangeInScreenClipRange((float)n.beginTime , (float)n.beginTime+ (float)n.timeConsuming))
+        else
+        {
+            float renderedWidth = (float)n.timeConsuming;
+            if (n.stackLevel==0)
             {
-                n.renderRect = new Rect((float)n.beginTime, HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel), (float)n.timeConsuming, HanoiVars.StackHeight);
-                Handles.DrawSolidRectangleWithOutline(n.renderRect, c, n.highlighted ? Color.white : c);
+                //画最底层总时间
+                n.renderRect = new Rect((float)n.beginTime, HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel - 1), TotalTimeConsuming - HanoiUtil.DrawingShrinkedTotal, HanoiVars.StackHeight);
+            }
+            else {
+                n.renderRect = new Rect((float)n.beginTime - DrawingShrinkedAccumulated , HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel - 1), (float)n.timeConsuming, HanoiVars.StackHeight);            
             }
         }
+
+        Handles.DrawSolidRectangleWithOutline(n.renderRect, c, n.highlighted ? Color.white : c);
+
+        DrawingCounts++;
 
         for (int i = 0; i < n.Children.Count; i++)
         {
@@ -164,21 +173,18 @@ public class HanoiUtil
     {
         if (n.highlighted)
         {
-            if (IsTimeRangeInScreenClipRange(n.renderRect.xMin, n.renderRect.xMin + HanoiVars.LabelBackgroundWidth))
-            {
-                Rect r = n.renderRect;
+            Rect r = n.renderRect;
 
-                r.width = HanoiVars.LabelBackgroundWidth;
-                r.height = 45;
-                Color bg = Color.black;
-                bg.a = 0.5f;
-                Handles.DrawSolidRectangleWithOutline(r, bg, bg);
+            r.width = HanoiVars.LabelBackgroundWidth;
+            r.height = 45;
+            Color bg = Color.black;
+            bg.a = 0.5f;
+            Handles.DrawSolidRectangleWithOutline(r, bg, bg);
 
-                GUI.color = Color.white;
-                Handles.Label(new Vector3(n.renderRect.xMin, n.renderRect.yMin), n.funcName);
-                Handles.Label(new Vector3(n.renderRect.xMin, n.renderRect.yMin + 15), n.moduleName);
-                Handles.Label(new Vector3(n.renderRect.xMin, n.renderRect.yMin + 30), string.Format("Time: {0:0.000}", n.timeConsuming));
-            }
+            GUI.color = Color.white;
+            Handles.Label(new Vector3(n.renderRect.xMin, n.renderRect.yMin), n.funcName);
+            Handles.Label(new Vector3(n.renderRect.xMin, n.renderRect.yMin + 15), n.moduleName);
+            Handles.Label(new Vector3(n.renderRect.xMin, n.renderRect.yMin + 30), string.Format("Time: {0:0.000}", n.timeConsuming));
         }
 
         for (int i = 0; i < n.Children.Count; i++)
