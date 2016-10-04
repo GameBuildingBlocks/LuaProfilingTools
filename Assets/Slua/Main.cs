@@ -50,8 +50,8 @@ public class Main : MonoBehaviour
 
     void Update()
     {
-        if (isStarted)
-            Lua.Instance.SetFrameInfo();
+        //if (isStarted)
+            //Lua.Instance.SetFrameInfo();
     }
 
 	void OnGUI()
@@ -76,8 +76,9 @@ public class Main : MonoBehaviour
     {
         if(isStarted)
         {
-            Lua.Instance.m_LuaSvr.start("main");
-            object o = Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
+            //Lua.Instance.m_LuaSvr.start("main");
+            //object o = Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
+            Lua.Instance.SetFrameInfo();
         }
     }
 

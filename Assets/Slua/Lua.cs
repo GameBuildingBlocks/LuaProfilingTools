@@ -13,6 +13,7 @@ public class Lua
     public LuaSvr m_LuaSvr = null;
 
     private string m_strPath = Application.temporaryCachePath;
+    private string m_strTime = Application.bundleIdentifier + "." + System.DateTime.Now.Year.ToString() + System.DateTime.Now.Month.ToString() + System.DateTime.Now.Day.ToString() + System.DateTime.Now.Hour.ToString() + System.DateTime.Now.Minute.ToString() + System.DateTime.Now.Second.ToString();
     public static Lua Instance
     {
         get
@@ -31,7 +32,7 @@ public class Lua
         m_LuaSvr.init(null, null, LuaSvrFlag.LSF_BASIC);
         LuaDLL.init_profiler(m_LuaSvr.luaState.L);
         Debug.Log(m_strPath);
-        m_strPath = m_strPath + "/" + Application.bundleIdentifier + "." + System.DateTime.Now.Year.ToString() + System.DateTime.Now.Month.ToString() + System.DateTime.Now.Day.ToString() + System.DateTime.Now.Hour.ToString() + System.DateTime.Now.Minute.ToString() + System.DateTime.Now.Second.ToString();
+        m_strPath = m_strPath + "/" + m_strTime;
         Debug.Log(m_strPath);
         DirectoryInfo myDirectoryInfo = new DirectoryInfo(m_strPath);
         if (!myDirectoryInfo.Exists)
@@ -42,7 +43,7 @@ public class Lua
 
     public void StartLuaProfiler()
     {
-        string file = m_strPath + "/" + System.DateTime.Now.Year.ToString() + System.DateTime.Now.Month.ToString() + System.DateTime.Now.Day.ToString() + System.DateTime.Now.Hour.ToString() + System.DateTime.Now.Minute.ToString() + System.DateTime.Now.Second.ToString() + System.DateTime.Now.Millisecond.ToString() + ".json";
+        string file = m_strPath + "/" + m_strTime + ".json";
         object o = m_LuaSvr.luaState.getFunction("profiler_start").call(file);
     }
 
