@@ -200,7 +200,7 @@ lprofP_STATE* lprofP_init_core_profiler(const char *_out_filename, int isto_prin
     randstr[strlen(randstr)-1]='\0';
 
   sprintf(auxs, out_filename, randstr);
-  outf = fopen(auxs, "w");
+  outf = fopen(auxs, "a");
   if (!outf) {
     return 0;
   }

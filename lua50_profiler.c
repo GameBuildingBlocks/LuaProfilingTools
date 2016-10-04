@@ -172,7 +172,7 @@ static int profiler_init(lua_State *L) {
   /* supposed to be by the time the profiler is activated when loaded  */
   /* as a library.                                                     */
   
-  lprofP_callhookIN(S, "profiler_init", "(C)", -1, -1,"C");
+  //lprofP_callhookIN(S, "profiler_init", "(C)", -1, -1,"C");
 	
   lua_pushboolean(L, 1);
   return 1;
