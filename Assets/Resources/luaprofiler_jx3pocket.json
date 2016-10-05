@@ -1,0 +1,678 @@
+{
+	"currentLine":	-1,
+	"lineDefined":	-1,
+	"timeConsuming":	0.004354,
+	"stackLevel":	1,
+	"callType":	"C",
+	"begintime":	8.139852,
+	"endtime":	8.144206,
+	"moduleName":	"(C)",
+	"funcName":	"profiler_init",
+	"children":	[]
+},{
+	"frameID":	60,
+	"frameTime":	9.534437,
+	"frameUnityTime":	928
+},{
+	"frameID":	61,
+	"frameTime":	11.605789,
+	"frameUnityTime":	930
+},{
+	"frameID":	62,
+	"frameTime":	28.196195,
+	"frameUnityTime":	947
+},{
+	"frameID":	63,
+	"frameTime":	44.712580,
+	"frameUnityTime":	964
+},{
+	"frameID":	64,
+	"frameTime":	61.324135,
+	"frameUnityTime":	980
+},{
+	"frameID":	65,
+	"frameTime":	77.779250,
+	"frameUnityTime":	997
+},{
+	"frameID":	66,
+	"frameTime":	94.457673,
+	"frameUnityTime":	13
+},{
+	"frameID":	67,
+	"frameTime":	111.152580,
+	"frameUnityTime":	30
+},{
+	"frameID":	68,
+	"frameTime":	127.589967,
+	"frameUnityTime":	46
+},{
+	"frameID":	69,
+	"frameTime":	144.178196,
+	"frameUnityTime":	63
+},{
+	"frameID":	70,
+	"frameTime":	160.762382,
+	"frameUnityTime":	80
+},{
+	"frameID":	71,
+	"frameTime":	177.181730,
+	"frameUnityTime":	96
+},{
+	"frameID":	72,
+	"frameTime":	194.139755,
+	"frameUnityTime":	113
+},{
+	"frameID":	73,
+	"frameTime":	210.398620,
+	"frameUnityTime":	129
+},{
+	"frameID":	74,
+	"frameTime":	227.012974,
+	"frameUnityTime":	146
+},{
+	"frameID":	75,
+	"frameTime":	243.566370,
+	"frameUnityTime":	162
+},{
+	"frameID":	76,
+	"frameTime":	260.132828,
+	"frameUnityTime":	179
+},{
+	"frameID":	77,
+	"frameTime":	276.554042,
+	"frameUnityTime":	195
+},{
+	"frameID":	78,
+	"frameTime":	293.242107,
+	"frameUnityTime":	212
+},{
+	"frameID":	79,
+	"frameTime":	309.825982,
+	"frameUnityTime":	229
+},{
+	"frameID":	80,
+	"frameTime":	326.366314,
+	"frameUnityTime":	245
+},{
+	"frameID":	81,
+	"frameTime":	343.035096,
+	"frameUnityTime":	262
+},{
+	"frameID":	82,
+	"frameTime":	359.524734,
+	"frameUnityTime":	278
+},{
+	"frameID":	83,
+	"frameTime":	375.952169,
+	"frameUnityTime":	295
+},{
+	"frameID":	84,
+	"frameTime":	392.857321,
+	"frameUnityTime":	312
+},{
+	"frameID":	85,
+	"frameTime":	409.276980,
+	"frameUnityTime":	328
+},{
+	"frameID":	86,
+	"frameTime":	426.073588,
+	"frameUnityTime":	345
+},{
+	"frameID":	87,
+	"frameTime":	442.828521,
+	"frameUnityTime":	362
+},{
+	"frameID":	88,
+	"frameTime":	459.012432,
+	"frameUnityTime":	378
+},{
+	"frameID":	89,
+	"frameTime":	475.413120,
+	"frameUnityTime":	394
+},{
+	"frameID":	90,
+	"frameTime":	492.078480,
+	"frameUnityTime":	411
+},{
+	"frameID":	91,
+	"frameTime":	508.639962,
+	"frameUnityTime":	427
+},{
+	"frameID":	92,
+	"frameTime":	525.217616,
+	"frameUnityTime":	444
+},{
+	"frameID":	93,
+	"frameTime":	541.780342,
+	"frameUnityTime":	461
+},{
+	"frameID":	94,
+	"frameTime":	558.215241,
+	"frameUnityTime":	477
+},{
+	"frameID":	95,
+	"frameTime":	574.944982,
+	"frameUnityTime":	494
+},{
+	"frameID":	96,
+	"frameTime":	591.494334,
+	"frameUnityTime":	510
+},{
+	"frameID":	97,
+	"frameTime":	608.057060,
+	"frameUnityTime":	527
+},{
+	"frameID":	98,
+	"frameTime":	624.610455,
+	"frameUnityTime":	543
+},{
+	"frameID":	99,
+	"frameTime":	641.171626,
+	"frameUnityTime":	560
+},{
+	"frameID":	100,
+	"frameTime":	657.617100,
+	"frameUnityTime":	576
+},{
+	"frameID":	101,
+	"frameTime":	674.367367,
+	"frameUnityTime":	593
+},{
+	"frameID":	102,
+	"frameTime":	690.913298,
+	"frameUnityTime":	610
+},{
+	"frameID":	103,
+	"frameTime":	707.453320,
+	"frameUnityTime":	626
+},{
+	"frameID":	104,
+	"frameTime":	724.036573,
+	"frameUnityTime":	643
+},{
+	"frameID":	105,
+	"frameTime":	740.578772,
+	"frameUnityTime":	659
+},{
+	"frameID":	106,
+	"frameTime":	757.014293,
+	"frameUnityTime":	676
+},{
+	"frameID":	107,
+	"frameTime":	773.702979,
+	"frameUnityTime":	693
+},{
+	"frameID":	108,
+	"frameTime":	790.331640,
+	"frameUnityTime":	709
+},{
+	"frameID":	109,
+	"frameTime":	806.813191,
+	"frameUnityTime":	726
+},{
+	"frameID":	110,
+	"frameTime":	823.446517,
+	"frameUnityTime":	742
+},{
+	"frameID":	111,
+	"frameTime":	840.000535,
+	"frameUnityTime":	759
+},{
+	"frameID":	112,
+	"frameTime":	856.414596,
+	"frameUnityTime":	775
+},{
+	"frameID":	113,
+	"frameTime":	873.117589,
+	"frameUnityTime":	792
+},{
+	"frameID":	114,
+	"frameTime":	889.689646,
+	"frameUnityTime":	809
+},{
+	"frameID":	115,
+	"frameTime":	906.237132,
+	"frameUnityTime":	825
+},{
+	"frameID":	116,
+	"frameTime":	922.860194,
+	"frameUnityTime":	842
+},{
+	"frameID":	117,
+	"frameTime":	939.452778,
+	"frameUnityTime":	858
+},{
+	"frameID":	118,
+	"frameTime":	955.824230,
+	"frameUnityTime":	875
+},{
+	"frameID":	119,
+	"frameTime":	972.525979,
+	"frameUnityTime":	891
+},{
+	"frameID":	120,
+	"frameTime":	989.111720,
+	"frameUnityTime":	908
+},{
+	"frameID":	121,
+	"frameTime":	1005.671958,
+	"frameUnityTime":	925
+},{
+	"frameID":	122,
+	"frameTime":	1022.211357,
+	"frameUnityTime":	941
+},{
+	"frameID":	123,
+	"frameTime":	1038.858368,
+	"frameUnityTime":	958
+},{
+	"frameID":	124,
+	"frameTime":	1055.219557,
+	"frameUnityTime":	974
+},{
+	"frameID":	125,
+	"frameTime":	1071.942455,
+	"frameUnityTime":	991
+},{
+	"frameID":	126,
+	"frameTime":	1088.484965,
+	"frameUnityTime":	7
+},{
+	"frameID":	127,
+	"frameTime":	1105.061064,
+	"frameUnityTime":	24
+},{
+	"frameID":	128,
+	"frameTime":	1121.766857,
+	"frameUnityTime":	41
+},{
+	"frameID":	129,
+	"frameTime":	1138.075484,
+	"frameUnityTime":	57
+},{
+	"frameID":	130,
+	"frameTime":	1154.773812,
+	"frameUnityTime":	74
+},{
+	"frameID":	131,
+	"frameTime":	1171.335605,
+	"frameUnityTime":	90
+},{
+	"frameID":	132,
+	"frameTime":	1187.909527,
+	"frameUnityTime":	107
+},{
+	"frameID":	133,
+	"frameTime":	1205.176388,
+	"frameUnityTime":	124
+},{
+	"frameID":	134,
+	"frameTime":	1221.481906,
+	"frameUnityTime":	140
+},{
+	"frameID":	135,
+	"frameTime":	1237.763475,
+	"frameUnityTime":	157
+},{
+	"frameID":	136,
+	"frameTime":	1254.533025,
+	"frameUnityTime":	173
+},{
+	"frameID":	137,
+	"frameTime":	1270.931225,
+	"frameUnityTime":	190
+},{
+	"frameID":	138,
+	"frameTime":	1287.548689,
+	"frameUnityTime":	206
+},{
+	"frameID":	139,
+	"frameTime":	1304.070050,
+	"frameUnityTime":	223
+},{
+	"frameID":	140,
+	"frameTime":	1320.596699,
+	"frameUnityTime":	239
+},{
+	"frameID":	141,
+	"frameTime":	1336.993654,
+	"frameUnityTime":	256
+},{
+	"frameID":	142,
+	"frameTime":	1353.992421,
+	"frameUnityTime":	273
+},{
+	"frameID":	143,
+	"frameTime":	1370.282699,
+	"frameUnityTime":	289
+},{
+	"frameID":	144,
+	"frameTime":	1386.881192,
+	"frameUnityTime":	306
+},{
+	"frameID":	145,
+	"frameTime":	1403.466621,
+	"frameUnityTime":	322
+},{
+	"frameID":	146,
+	"frameTime":	1420.143489,
+	"frameUnityTime":	339
+},{
+	"frameID":	147,
+	"frameTime":	1436.365344,
+	"frameUnityTime":	355
+},{
+	"frameID":	148,
+	"frameTime":	1453.221045,
+	"frameUnityTime":	372
+},{
+	"frameID":	149,
+	"frameTime":	1469.918751,
+	"frameUnityTime":	389
+},{
+	"frameID":	150,
+	"frameTime":	1486.361425,
+	"frameUnityTime":	405
+},{
+	"frameID":	151,
+	"frameTime":	1503.033317,
+	"frameUnityTime":	422
+},{
+	"frameID":	152,
+	"frameTime":	1519.451422,
+	"frameUnityTime":	438
+},{
+	"frameID":	153,
+	"frameTime":	1535.830649,
+	"frameUnityTime":	455
+},{
+	"frameID":	154,
+	"frameTime":	1552.564744,
+	"frameUnityTime":	471
+},{
+	"frameID":	155,
+	"frameTime":	1569.180031,
+	"frameUnityTime":	488
+},{
+	"frameID":	156,
+	"frameTime":	1585.693617,
+	"frameUnityTime":	504
+},{
+	"frameID":	157,
+	"frameTime":	1602.308593,
+	"frameUnityTime":	521
+},{
+	"frameID":	158,
+	"frameTime":	1618.623441,
+	"frameUnityTime":	537
+},{
+	"frameID":	159,
+	"frameTime":	1635.405431,
+	"frameUnityTime":	554
+},{
+	"frameID":	160,
+	"frameTime":	1651.970023,
+	"frameUnityTime":	571
+},{
+	"frameID":	161,
+	"frameTime":	1668.514399,
+	"frameUnityTime":	587
+},{
+	"frameID":	162,
+	"frameTime":	1685.132175,
+	"frameUnityTime":	604
+},{
+	"frameID":	163,
+	"frameTime":	1702.337766,
+	"frameUnityTime":	621
+},{
+	"frameID":	164,
+	"frameTime":	1718.028098,
+	"frameUnityTime":	637
+},{
+	"frameID":	165,
+	"frameTime":	1734.912723,
+	"frameUnityTime":	654
+},{
+	"frameID":	166,
+	"frameTime":	1751.431907,
+	"frameUnityTime":	670
+},{
+	"currentLine":	-1,
+	"lineDefined":	0,
+	"timeConsuming":	0.007153,
+	"stackLevel":	1,
+	"callType":	"main",
+	"begintime":	1771.750124,
+	"endtime":	1771.757277,
+	"moduleName":	"@main",
+	"funcName":	"@main:0",
+	"children":	[]
+},{
+	"currentLine":	-1,
+	"lineDefined":	6,
+	"timeConsuming":	0.022393,
+	"stackLevel":	1,
+	"callType":	"Lua",
+	"begintime":	1772.301240,
+	"endtime":	1772.323633,
+	"moduleName":	"@main",
+	"funcName":	"@main:6",
+	"children":	[{
+			"currentLine":	7,
+			"lineDefined":	2,
+			"timeConsuming":	0.012441,
+			"stackLevel":	2,
+			"callType":	"Lua",
+			"begintime":	1772.309327,
+			"endtime":	1772.321767,
+			"moduleName":	"@main",
+			"funcName":	"start",
+			"children":	[{
+					"currentLine":	3,
+					"lineDefined":	10,
+					"timeConsuming":	0.002177,
+					"stackLevel":	3,
+					"callType":	"Lua",
+					"begintime":	1772.317102,
+					"endtime":	1772.319279,
+					"moduleName":	"@main",
+					"funcName":	"foo",
+					"children":	[]
+				}]
+		}]
+},{
+	"currentLine":	-1,
+	"lineDefined":	10,
+	"timeConsuming":	0.003110,
+	"stackLevel":	1,
+	"callType":	"Lua",
+	"begintime":	1773.825830,
+	"endtime":	1773.828940,
+	"moduleName":	"@main",
+	"funcName":	"@main:10",
+	"children":	[]
+},{
+	"frameID":	167,
+	"frameTime":	1776.138528,
+	"frameUnityTime":	695
+},{
+	"frameID":	168,
+	"frameTime":	1784.422379,
+	"frameUnityTime":	703
+},{
+	"frameID":	169,
+	"frameTime":	1801.095515,
+	"frameUnityTime":	720
+},{
+	"frameID":	170,
+	"frameTime":	1817.265430,
+	"frameUnityTime":	736
+},{
+	"frameID":	171,
+	"frameTime":	1833.968112,
+	"frameUnityTime":	753
+},{
+	"frameID":	172,
+	"frameTime":	1850.552920,
+	"frameUnityTime":	769
+},{
+	"frameID":	173,
+	"frameTime":	1867.156700,
+	"frameUnityTime":	786
+},{
+	"frameID":	174,
+	"frameTime":	1883.687080,
+	"frameUnityTime":	802
+},{
+	"frameID":	175,
+	"frameTime":	1900.236744,
+	"frameUnityTime":	819
+},{
+	"frameID":	176,
+	"frameTime":	1916.675997,
+	"frameUnityTime":	835
+},{
+	"frameID":	177,
+	"frameTime":	1933.359396,
+	"frameUnityTime":	852
+},{
+	"frameID":	178,
+	"frameTime":	1949.979971,
+	"frameUnityTime":	869
+},{
+	"frameID":	179,
+	"frameTime":	1966.551094,
+	"frameUnityTime":	885
+},{
+	"frameID":	180,
+	"frameTime":	1983.088317,
+	"frameUnityTime":	902
+},{
+	"frameID":	181,
+	"frameTime":	1999.600969,
+	"frameUnityTime":	918
+},{
+	"frameID":	182,
+	"frameTime":	2016.169293,
+	"frameUnityTime":	935
+},{
+	"frameID":	183,
+	"frameTime":	2032.788624,
+	"frameUnityTime":	952
+},{
+	"frameID":	184,
+	"frameTime":	2049.440300,
+	"frameUnityTime":	968
+},{
+	"frameID":	185,
+	"frameTime":	2065.919363,
+	"frameUnityTime":	985
+},{
+	"frameID":	186,
+	"frameTime":	2082.474002,
+	"frameUnityTime":	1
+},{
+	"frameID":	187,
+	"frameTime":	2099.041704,
+	"frameUnityTime":	18
+},{
+	"frameID":	188,
+	"frameTime":	2115.479092,
+	"frameUnityTime":	34
+},{
+	"frameID":	189,
+	"frameTime":	2132.156893,
+	"frameUnityTime":	51
+},{
+	"frameID":	190,
+	"frameTime":	2148.760361,
+	"frameUnityTime":	68
+},{
+	"frameID":	191,
+	"frameTime":	2165.291053,
+	"frameUnityTime":	84
+},{
+	"frameID":	192,
+	"frameTime":	2181.859066,
+	"frameUnityTime":	101
+},{
+	"frameID":	193,
+	"frameTime":	2198.311071,
+	"frameUnityTime":	117
+},{
+	"frameID":	194,
+	"frameTime":	2215.013131,
+	"frameUnityTime":	134
+},{
+	"frameID":	195,
+	"frameTime":	2231.555952,
+	"frameUnityTime":	150
+},{
+	"frameID":	196,
+	"frameTime":	2248.233442,
+	"frameUnityTime":	167
+},{
+	"frameID":	197,
+	"frameTime":	2264.700376,
+	"frameUnityTime":	183
+},{
+	"frameID":	198,
+	"frameTime":	2281.315352,
+	"frameUnityTime":	200
+},{
+	"frameID":	199,
+	"frameTime":	2297.711685,
+	"frameUnityTime":	216
+},{
+	"frameID":	200,
+	"frameTime":	2314.809044,
+	"frameUnityTime":	234
+},{
+	"frameID":	201,
+	"frameTime":	2331.397273,
+	"frameUnityTime":	250
+},{
+	"frameID":	202,
+	"frameTime":	2347.901528,
+	"frameUnityTime":	267
+},{
+	"frameID":	203,
+	"frameTime":	2364.539830,
+	"frameUnityTime":	283
+},{
+	"frameID":	204,
+	"frameTime":	2381.450892,
+	"frameUnityTime":	300
+},{
+	"frameID":	205,
+	"frameTime":	2397.362666,
+	"frameUnityTime":	316
+},{
+	"frameID":	206,
+	"frameTime":	2414.121952,
+	"frameUnityTime":	333
+},{
+	"frameID":	207,
+	"frameTime":	2430.810017,
+	"frameUnityTime":	350
+},{
+	"frameID":	208,
+	"frameTime":	2447.212259,
+	"frameUnityTime":	366
+},{
+	"frameID":	209,
+	"frameTime":	2463.755391,
+	"frameUnityTime":	383
+},{
+	"currentLine":	-1,
+	"lineDefined":	-1,
+	"timeConsuming":	0.001244,
+	"stackLevel":	1,
+	"callType":	"C",
+	"begintime":	2481.027229,
+	"endtime":	2481.028473,
+	"moduleName":	"=[C]",
+	"funcName":	"called from top level",
+	"children":	[]
+},
