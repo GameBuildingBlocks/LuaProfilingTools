@@ -39,6 +39,8 @@ double dFrameInterval = 0.0;
 int   nOutputCount = 0;
 long node_size = 0;
 int first_flush = 1;
+int bPrevIsFrame = 0;
+double dTotalWriteConsuming = 0.0;
 
 FILE* outf;
 //LARGE_INTEGER time_maker_golbal_begin;
@@ -50,12 +52,15 @@ LARGE_INTEGER time_maker_golbal_stop;
 cJSON* treeTojson(lprofT_NODE* p);
 
 void output(const char *format, ...) {
+	LARGE_INTEGER timestart;
+	lprofC_start_timer2(&timestart);
 	va_list ap;
 	va_start(ap, format);
 	vfprintf(outf, format, ap);
 	va_end(ap);
 
 	fflush(outf);
+	dTotalWriteConsuming += lprofC_get_seconds2(&timestart);
 }
 
 /* do not allow a string with '\n' and '|' (log file format reserved chars) */
@@ -343,6 +348,7 @@ void lprofT_tojson()
 		//nTotalCall = 0;
 		//dTotalTimeConsuming = 0.0;
 		pTreeRoot = NULL;
+		bPrevIsFrame = 0;
 /*
 #ifdef _MSC_VER
 		time_maker_golbal_begin.QuadPart = 0;
@@ -550,6 +556,7 @@ void lprofT_close()
 	dTotalTimeConsuming = 0.0;
 	pTreeRoot = NULL;
 	dFrameInterval = 0;
+	bPrevIsFrame = 0;
 }
 
 cJSON* frameTojson(int id ,int unitytime)
@@ -560,6 +567,7 @@ cJSON* frameTojson(int id ,int unitytime)
 	cJSON_AddItemToObject(root, "frameID", cJSON_CreateNumber(id));
 	cJSON_AddItemToObject(root, "frameTime", cJSON_CreateNumber(frametime));
 	cJSON_AddItemToObject(root, "frameUnityTime", cJSON_CreateNumber(unitytime));
+	cJSON_AddItemToObject(root, "writefileTime", cJSON_CreateNumber(dTotalWriteConsuming));
 	//cJSON_AddItemToObject(root, "frameInterval", cJSON_CreateNumber(frametime));
 	
 	return root;
@@ -568,15 +576,20 @@ cJSON* frameTojson(int id ,int unitytime)
 
 void lprofT_frame(int id, int unitytime)
 {
-	cJSON* root = frameTojson(id,unitytime);
-	if (root)
+	if (0 == bPrevIsFrame)
 	{
-		char *jstring = cJSON_Print(root);
-		output(jstring);
-		output(",");
-		cJSON_Delete(root);
-		free(jstring);
+		cJSON* root = frameTojson(id, unitytime);
+		if (root)
+		{
+			char *jstring = cJSON_Print(root);
+			output(jstring);
+			output(",");
+			cJSON_Delete(root);
+			free(jstring);
+		}
+		bPrevIsFrame = 1;
 	}
+	
 
 }
 
