@@ -24,6 +24,7 @@
     <ClCompile Include="..\..\..\..\..\Hanoi-Core\src\core_profiler.c" />
     <ClCompile Include="..\..\..\..\..\Hanoi-Core\src\function_meter.c" />
     <ClCompile Include="..\..\..\..\..\Hanoi-Core\src\lua50_profiler.c" />
+    <ClCompile Include="..\..\..\..\..\Hanoi-Core\src\output.c" />
     <ClCompile Include="..\..\..\..\..\Hanoi-Core\src\stack.c" />
     <ClCompile Include="..\..\..\..\src\lapi.c" />
     <ClCompile Include="..\..\..\..\src\lauxlib.c" />
@@ -66,6 +67,7 @@
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\core_profiler.h" />
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\function_meter.h" />
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\luaprofiler.h" />
+    <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\output.h" />
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\pthread.h" />
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\sched.h" />
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\semaphore.h" />
