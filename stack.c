@@ -17,6 +17,7 @@ stack.c:
 #include "stack.h"
 #include "clocks.h"
 #include "cJSON.h"
+#include "output.h"
 /*
 #if defined (_WIN32)
 #include"pthread.h"
@@ -39,7 +40,6 @@ double dFrameInterval = 0.0;
 int   nOutputCount = 0;
 long node_size = 0;
 int first_flush = 1;
-int bPrevIsFrame = 0;
 double dTotalWriteConsuming = 0.0;
 
 FILE* outf;
@@ -194,7 +194,7 @@ void lprofT_add(lprofS_STACK pChild)
 	
 }
 
-
+/*
 void lprofT_print2()
 {
 	output("-------------------------------------------------\n");
@@ -210,8 +210,9 @@ void lprofT_print2()
 		nMaxStackLevel = 0;
 	}
 }
+*/
 
-
+/*
 void lprofT_print()
 {
 	if (pTopRoot == NULL)
@@ -222,8 +223,9 @@ void lprofT_print()
 	lprofT_addchild(pTopRoot, pTreeNode);
 	pTreeNode = pTreeRoot = NULL;
 }
+*/
 
-
+/*
 void lprofT_output(lprofT_NODE* p)
 {
 	if (p && p->pNode)
@@ -279,7 +281,7 @@ void lprofT_output(lprofT_NODE* p)
 		lprofT_free(p);
 	}
 }
-
+*/
 
 void lprofT_free(lprofT_NODE* p)
 {
@@ -341,14 +343,14 @@ void lprofT_tojson()
 	{
 		cJSON* root = treeTojson(pTreeRoot);
 		char *jstring = cJSON_Print(root);
-		output(jstring);
-		output(",");
+		//output(jstring);
+		//output(",");
+		lprofP_addData(jstring);
 		cJSON_Delete(root);
-		free(jstring);
+		//free(jstring);
 		//nTotalCall = 0;
 		//dTotalTimeConsuming = 0.0;
 		pTreeRoot = NULL;
-		bPrevIsFrame = 0;
 /*
 #ifdef _MSC_VER
 		time_maker_golbal_begin.QuadPart = 0;
@@ -494,6 +496,7 @@ cJSON* treeTojson(lprofT_NODE* p)
 	return root;
 }
 
+/*
 cJSON* treeTojson2(lprofT_NODE* p)
 {
 	assert(p);
@@ -528,7 +531,7 @@ cJSON* treeTojson2(lprofT_NODE* p)
 	}
 	return root;
 }
-
+*/
 
 
 void lprofT_close()
@@ -552,11 +555,12 @@ void lprofT_close()
 	cJSON_Delete(root);
 	free(jstring);
 	*/
+	lprofP_close();
 	nTotalCall = 0;
 	dTotalTimeConsuming = 0.0;
 	pTreeRoot = NULL;
 	dFrameInterval = 0;
-	bPrevIsFrame = 0;
+
 }
 
 cJSON* frameTojson(int id ,int unitytime)
@@ -576,21 +580,16 @@ cJSON* frameTojson(int id ,int unitytime)
 
 void lprofT_frame(int id, int unitytime)
 {
-	if (0 == bPrevIsFrame)
+	cJSON* root = frameTojson(id, unitytime);
+	if (root)
 	{
-		cJSON* root = frameTojson(id, unitytime);
-		if (root)
-		{
-			char *jstring = cJSON_Print(root);
-			output(jstring);
-			output(",");
-			cJSON_Delete(root);
-			free(jstring);
-		}
-		bPrevIsFrame = 1;
+		char *jstring = cJSON_Print(root);
+		lprofP_addFrame(id,jstring);
+		//output(jstring);
+		//output(",");
+		cJSON_Delete(root);
+		//free(jstring);
 	}
-	
-
 }
 
 void lprofT_init()
