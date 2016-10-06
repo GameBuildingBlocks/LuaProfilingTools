@@ -7,6 +7,24 @@ public delegate void HanoiNodeAction(HanoiNode n);
 
 public class HanoiUtil 
 {
+    public static string[] SelectVaildJsonFolders(string[]  folders)
+    {
+        List<string> result= new List<string>(); 
+        foreach(string folder in folders){
+            string[] filePaths = Lua.Instance.GetProfilerFiles(folder);
+            if (filePaths.Length > 0)
+            {
+                result.Add(folder);
+            }
+        }
+        return result.ToArray();
+    }
+
+    public static string[] GetVaildJsonFolders()
+    {
+        return  SelectVaildJsonFolders(Lua.Instance.GetProfilerFolders());
+    }
+
     public static void ForeachInParentChain(HanoiNode n, HanoiNodeAction act)
     {
         HanoiNode target = n;
@@ -101,7 +119,7 @@ public class HanoiUtil
                 Handles.Label(new Vector3(beginPosX, 0), string.Format("frameID:{0:0}", hfi.frameID));
                 Handles.Label(new Vector3(beginPosX, 15), string.Format("frameTime:{0:0.00}", hfi.frameTime));
                 Handles.Label(new Vector3(beginPosX, 30), string.Format("frameUnityTime:{0:0.00}", hfi.frameUnityTime));
-                Handles.Label(new Vector3(beginPosX, 45), string.Format("frameInterval:{0:0.00}", hfi.frameEndTime));
+                Handles.Label(new Vector3(beginPosX, 45), string.Format("frameInterval:{0:0.00}", hfi.frameEndTime-hfi.frameTime));
                 Handles.DrawLine(new Vector3(hfi.frameTime, 0), new Vector3(hfi.frameTime, VisualizerWindow.m_winHeight));
                 Handles.DrawLine(new Vector3(hfi.frameEndTime, 0), new Vector3(hfi.frameEndTime, VisualizerWindow.m_winHeight));
             }
