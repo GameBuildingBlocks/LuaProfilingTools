@@ -130,6 +130,9 @@
     <ClCompile Include="..\..\..\..\..\Hanoi-Core\src\stack.c">
       <Filter>luaprofiler</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Hanoi-Core\src\output.c">
+      <Filter>luaprofiler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\lapi.h">
@@ -235,6 +238,9 @@
       <Filter>luaprofiler</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\semaphore.h">
+      <Filter>luaprofiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Hanoi-Core\src\output.h">
       <Filter>luaprofiler</Filter>
     </ClInclude>
   </ItemGroup>
