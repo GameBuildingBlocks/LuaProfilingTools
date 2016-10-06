@@ -7,7 +7,22 @@ function main()
 	start()
 end
 
+function foo3(a,b,c)
+	return a,b,c,"slua"
+end
+
+function foo2(a,b,c)
+	foo3(a,b,c)
+	return a,b,c,"slua"
+end
+
+function foo1(a,b,c)
+  foo2(a,b,c)
+	return a,b,c,"slua"
+end
+
 function foo(a,b,c)
+	foo1(a,b,c)
 	return a,b,c,"slua"
 end
 
