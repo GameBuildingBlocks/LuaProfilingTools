@@ -95,10 +95,6 @@ public class HanoiData
     JSONObject m_json;
     HanoiRoot m_hanoiData;
 
-    float frameTagTimeAccumulated = 0.0f;
-    float frameTagInterval = 0.0f;
-    public int frameTagID = 1;
-
     public bool Load(string filename)
     {
         m_hanoiData = null;
@@ -300,16 +296,10 @@ public class HanoiData
 
             foreach (JSONObject childJson in obj.GetField("children").list)
             {
-                bool isOnStackZero = node.stackLevel == 0;
-                double lastStackOneEnd = 0.0;
                 HanoiNode child = new HanoiNode(node);
                 if (readObject(childJson, child))
                 {
                     node.Children.Add(child);
-                }
-                if (isOnStackZero)
-                {
-                    lastStackOneEnd = child.endTime;
                 }
             }
         }

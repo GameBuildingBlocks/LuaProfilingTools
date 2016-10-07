@@ -36,7 +36,7 @@ using System.Collections;
              window.Show();
              window.wantsMouseMove = true;
              window.CheckForResizing();
-             window.fitScreenSizeScale();
+             //window.fitScreenSizeScale();
          }
 
          public VisualizerWindow()
@@ -51,26 +51,31 @@ using System.Collections;
              Handles.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(1, 1, 1));
              //control窗口内容
              GUILayout.BeginArea(new Rect(0, m_controlScreenPosY, m_winWidth, m_controlScreenHeight));
+             {
                  Rect w = new Rect();
                  w.position = new Vector2(0, 0);
                  w.width = m_winWidth;
                  w.height = m_controlScreenHeight;
                  Color bgw = Color.green;
                  bgw.a = 0.5f;
-                 Handles.DrawSolidRectangleWithOutline(w,bgw,bgw);
+                 Handles.DrawSolidRectangleWithOutline(w, bgw, bgw);
                  drawGUIElement();
+             }
              GUILayout.EndArea();
              //navigation窗口内容
-             GUILayout.BeginArea(new Rect(0,m_navigationScreenPosY, m_winWidth, m_navigationScreenHeight));
+             GUILayout.BeginArea(new Rect(0, m_navigationScreenPosY, m_winWidth, m_navigationScreenHeight));
+             {
                  Rect r = new Rect();
-                 r.position = new Vector2(0,0);
+                 r.position = new Vector2(0, 0);
                  r.width = m_winWidth;
                  r.height = m_navigationScreenHeight;
                  Color bg = Color.red;
                  bg.a = 0.5f;
                  Handles.DrawSolidRectangleWithOutline(r, bg, bg);
+             }
              GUILayout.EndArea();
-             if (m_data.isHanoiDataLoadSucc()) {
+             if (m_data.isHanoiDataLoadSucc())
+             {
                  CheckForInput();
                  //detail窗口内容
                  GUILayout.BeginArea(new Rect(0, m_detailScreenPosY, m_winWidth, m_detailScreenHeight));
@@ -118,6 +123,7 @@ using System.Collections;
 
                  HanoiUtil.TotalTimeConsuming = HanoiUtil.calculateTotalTimeConsuming(m_data.Root.callStats);
                  HanoiUtil.CalculateFrameInterval(m_data.Root.callStats, null);
+                 calculateStackHeight();
                  _selectedJsonFileIndex = currentSelectedIndex;
              }
              catch (Exception ex)
@@ -270,6 +276,9 @@ using System.Collections;
              m_controlScreenHeight = m_winHeight - m_detailScreenHeight - m_navigationScreenHeight;
              m_controlScreenPosY = 0.0f;
 
+         }
+
+         private void calculateStackHeight() {
              HanoiVars.StackHeight = (m_data.MaxStackLevel != 0) ? (m_detailScreenHeight / m_data.MaxStackLevel) : m_detailScreenHeight;
          }
 
@@ -309,6 +318,11 @@ using System.Collections;
              get { return ViewToDrawingTransformPoint(Event.current.mousePosition);}
          }
 
+         public Vector2 mousePositionInDetailScreen
+         {
+             get { return mousePositionInDrawing - new Vector2(0, m_detailScreenPosY); }
+         }
+
          public float GetDrawingLengthByPanelPixels(int pixels)
          {
              return Mathf.Abs(ViewToDrawingTransformPoint(new Vector2(pixels, 0)).x - ViewToDrawingTransformPoint(new Vector2(0, 0)).x); 
@@ -326,7 +340,7 @@ using System.Collections;
                              m_picked = null;
                          }
 
-                         HanoiNode picked = PickHanoiRecursively(m_data.Root.callStats, mousePositionInDrawing);
+                         HanoiNode picked = PickHanoiRecursively(m_data.Root.callStats, mousePositionInDetailScreen);
                          if (picked != null)
                          {
                              HanoiUtil.ForeachInParentChain(picked, (n) => { 
@@ -341,9 +355,10 @@ using System.Collections;
                              Debug.LogFormat("Picked nothing.");
                          }
 
-                         if (EditorWindow.focusedWindow == this) {
-                             if ((Event.current.mousePosition.x >= 0 && Event.current.mousePosition.x<= m_winWidth) &&
-                                 (Event.current.mousePosition.y >= m_detailScreenPosY &&Event.current.mousePosition.y <= m_winHeight))
+                         if (EditorWindow.focusedWindow == this)
+                         {
+                             if ((Event.current.mousePosition.x >= 0 && Event.current.mousePosition.x <= m_winWidth) &&
+                                 (Event.current.mousePosition.y >= m_detailScreenPosY && Event.current.mousePosition.y <= m_winHeight))
                              {
                                  Repaint();
                              }

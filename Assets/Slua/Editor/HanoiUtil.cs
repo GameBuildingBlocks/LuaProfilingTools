@@ -88,7 +88,11 @@ public class HanoiUtil
                 if (preFrameStartTime>0)
                 {
                     HanoiFrameInfo hfiChild=(HanoiFrameInfo)n.Children[preFrameIndex];
-                    hfiChild.frameEndTime = hfi.frameTime;
+                    //只记录相邻帧的前帧结束时间，非相邻帧信息不显示
+                    if (hfi.frameID - hfiChild.frameID == 1)
+                    {
+                        hfiChild.frameEndTime = hfi.frameTime;
+                    }
                 }
                 preFrameIndex = i;
                 preFrameStartTime = hfi.frameTime;
@@ -105,7 +109,7 @@ public class HanoiUtil
 
             if (mouseX >= hfi.frameTime && mouseX <= hfi.frameEndTime)
             {
-                float beginPosX = hfi.frameEndTime;
+                float beginPosX = hfi.frameTime;
                 Rect r = new Rect();
                 r.position = new Vector2(beginPosX, 0);
                 r.width = HanoiVars.LabelBackgroundWidth / 1.5f;
@@ -167,7 +171,8 @@ public class HanoiUtil
         else {
             if (IsTimeRangeInScreenClipRange((float)n.beginTime , (float)n.beginTime+ (float)n.timeConsuming))
             {
-                n.renderRect = new Rect((float)n.beginTime, HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel), (float)n.timeConsuming, HanoiVars.StackHeight);
+                n.renderRect = new Rect((float)n.beginTime,HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel)
+                    , (float)n.timeConsuming, HanoiVars.StackHeight);
                 Handles.DrawSolidRectangleWithOutline(n.renderRect, c, n.highlighted ? Color.white : c);
             }
         }
