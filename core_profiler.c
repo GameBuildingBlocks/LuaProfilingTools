@@ -43,6 +43,7 @@ a depth-first search recursive algorithm).
 
 #include "core_profiler.h"
 #include "stack.h"
+#include "output.h"
 
     /* default log name (%s is used to place a random string) */
 #define OUT_FILENAME "lprof_%s.out"

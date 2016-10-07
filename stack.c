@@ -40,9 +40,9 @@ double dFrameInterval = 0.0;
 int   nOutputCount = 0;
 long node_size = 0;
 int first_flush = 1;
-double dTotalWriteConsuming = 0.0;
+//double dTotalWriteConsuming = 0.0;
 
-FILE* outf;
+//FILE* outf;
 //LARGE_INTEGER time_maker_golbal_begin;
 //LARGE_INTEGER time_maker_golbal_end;
 //LARGE_INTEGER time_maker_golbal_init;
@@ -51,6 +51,7 @@ LARGE_INTEGER time_maker_golbal_stop;
 
 cJSON* treeTojson(lprofT_NODE* p);
 
+/*
 void output(const char *format, ...) {
 	LARGE_INTEGER timestart;
 	lprofC_start_timer2(&timestart);
@@ -62,6 +63,7 @@ void output(const char *format, ...) {
 	fflush(outf);
 	dTotalWriteConsuming += lprofC_get_seconds2(&timestart);
 }
+*/
 
 /* do not allow a string with '\n' and '|' (log file format reserved chars) */
 /* - replace them by ' '                                                    */

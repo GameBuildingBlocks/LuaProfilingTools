@@ -9,8 +9,22 @@ int nMaxCacheNode = 2;
 int nCacheNode = 0;
 lprof_PREVNODE sPrevNode = { 0,0 };
 
+double dTotalWriteConsuming = 0.0;
+
 lprofP_OUTPUT pOutputHead = NULL;
 lprofP_OUTPUT pOutputTail = NULL;
+
+void output(const char *format, ...) {
+	LARGE_INTEGER timestart;
+	lprofC_start_timer2(&timestart);
+	va_list ap;
+	va_start(ap, format);
+	vfprintf(outf, format, ap);
+	va_end(ap);
+
+	fflush(outf);
+	dTotalWriteConsuming += lprofC_get_seconds2(&timestart);
+}
 
 void lprofP_addFrame(int id, char* str)
 {
@@ -88,4 +102,5 @@ void lprofP_close()
 	}
 	pOutputHead = NULL;
 	pOutputTail = NULL;
+	dTotalWriteConsuming = 0.0;
 }

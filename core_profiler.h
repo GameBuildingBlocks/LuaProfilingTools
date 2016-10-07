@@ -17,6 +17,7 @@ Design (using the Lua callhook mechanism) :
 *****************************************************************************/
 
 #include "stack.h"
+#include "output.h"
 
 //int lprofP_output(lprofP_STATE* S);
 

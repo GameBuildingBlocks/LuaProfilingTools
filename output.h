@@ -1,6 +1,16 @@
 #ifndef _OUTPUT_H
 #define _OUTPUT_H
 
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <assert.h>
+#include "lp.h"
+
+FILE *outf;
+double dTotalWriteConsuming;
 
 typedef struct tag_lprof_OUTPUT lprof_OUTPUT;
 
