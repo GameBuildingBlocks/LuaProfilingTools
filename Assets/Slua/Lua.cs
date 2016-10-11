@@ -41,6 +41,11 @@ public class Lua
         }
     }
 
+    public void SetLuaProfilerCallback(LuaProfilerCallback callback)
+    {
+        LuaDLL.callback_profiler(callback);
+    }
+
     public void StartLuaProfiler()
     {
         string file = m_strPath + "/" + m_strTime + ".json";

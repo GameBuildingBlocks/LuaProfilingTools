@@ -78,6 +78,8 @@ namespace LuaInterface
     public delegate string LuaChunkReader(IntPtr luaState, ref ReaderInfo data, ref uint size);
 
     public delegate int LuaFunctionCallback(IntPtr luaState);
+
+    public delegate void LuaProfilerCallback(string data);
     public class LuaDLL
     {
         public static int LUA_MULTRET = -1;
@@ -91,6 +93,9 @@ namespace LuaInterface
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void frame_profiler(int id,int time);
+
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern void callback_profiler(LuaProfilerCallback callback);
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void luaS_openextlibs(IntPtr L);

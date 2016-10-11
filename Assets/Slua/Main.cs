@@ -23,7 +23,8 @@ public class Main : MonoBehaviour
 #endif
 
 		Lua.Instance.InitLuaProfiler();
-	}
+        Lua.Instance.SetLuaProfilerCallback(onUnityMessage);
+    }
 
 	void log(string cond, string trace, LogType lt)
 	{
@@ -93,6 +94,12 @@ public class Main : MonoBehaviour
             if (files.Length > 0)
                 Debug.Log(files[0]);
         }
+    }
+
+    public void onUnityMessage(string strInfo)
+    {
+        Debug.Log(strInfo);
+        print(strInfo);
     }
 
 }
