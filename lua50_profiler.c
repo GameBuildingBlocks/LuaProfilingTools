@@ -17,6 +17,7 @@ lua50_profiler.c:
 #include "core_profiler.h"
 #include "function_meter.h"
 #include "stack.h"
+#include "output.h"
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -267,7 +268,8 @@ int profiler_open(lua_State *L)
 	lua_register(L, "profiler_pause", profiler_pause);
 	lua_register(L, "profiler_resume", profiler_resume);
 	lua_register(L, "profiler_stop", profiler_stop);
-	lua_register(L, "profiler_frame", profiler_frame);
+	//lua_register(L, "profiler_frame", profiler_frame);
+	//lua_register(L, "profiler_callback", profiler_callback);
 	
 	return 1;
 }
@@ -276,10 +278,19 @@ int profiler_open(lua_State *L)
 DLL_API void init_profiler(lua_State *L)
 {
 	profiler_open(L);
+	pOutputCallback = NULL;
 	//lprofT_init();
 }
 
 DLL_API void frame_profiler(int id,int unitytime)
 {
 	lprofT_frame(id, unitytime);
+}
+
+DLL_API void callback_profiler(void* pcallback)
+{
+	if (pcallback)
+	{
+		pOutputCallback = pcallback;
+	}
 }

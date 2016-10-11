@@ -10,6 +10,11 @@
 #include "lp.h"
 
 FILE *outf;
+
+typedef void(_stdcall *pfnoutputCallback)(char* info);
+
+pfnoutputCallback pOutputCallback;
+
 double dTotalWriteConsuming;
 
 typedef struct tag_lprof_OUTPUT lprof_OUTPUT;
