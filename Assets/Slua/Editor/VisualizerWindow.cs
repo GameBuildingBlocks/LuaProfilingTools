@@ -1,9 +1,9 @@
 ﻿ using UnityEngine;
  using UnityEditor;
  using System.Collections.Generic;
-using System;
 using System.IO;
 using System.Collections;
+using System.Security;
      public class VisualizerWindow : EditorWindow
      {
          [SerializeField]
@@ -12,6 +12,14 @@ using System.Collections;
          internal Vector2 m_Translation = new Vector2(0, 0);
          public static float m_winWidth = 0.0f;
          public static float m_winHeight = 0.0f;
+
+         public static string GRAPH_TIMECONSUMING = "timeConsuming";
+         public static string SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE = "luaTimeConsumingExclusive";
+         public static string SUBGRAPH_LUA_TIMECONSUMING_UNEXCLUSIVE = "luaTimeConsumingUnExclusive";
+
+         public static string GRAPH_TIME_PERCENT = "timePercent";
+         public static string SUBGRAPH_LUA_PERCENT_EXCLUSIVE = "luaTimePercentExclusive";
+         public static string SUBGRAPH_LUA_PERCENT_UNEXCLUSIVE = "luaTimePercentUnExclusive";
 
          public static float m_controlScreenHeight = 0.0f;
          public static float m_controlScreenPosY = 0.0f;
@@ -22,21 +30,143 @@ using System.Collections;
          public static float m_detailScreenHeight = 0.0f;
          public static float m_detailScreenPosY = 0.0f;
 
+        private Vector2 scrollPosition = Vector2.zero;
+        string t = "This is a string inside a Scroll view! \n  This is a string inside a Scroll view! \n This is a string inside a Scroll view!";
+
          HanoiData m_data = new HanoiData();
          HanoiNode m_picked;
+
+         public bool m_isTestCallLua = false;
 
          int _selectedJsonFileIndex = -1;
          string[] _JsonFilesPath = new string[] { };
 
-         [MenuItem("Window/VisualizerWindow")]
+         [MenuItem("Window/"+Lua.g_editorWindow)]
          static void Create()
          {
-             // Get existing open window or if none, make a new one:
-             VisualizerWindow window = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
-             window.Show();
-             window.wantsMouseMove = true;
-             window.CheckForResizing();
+             //// Get existing open window or if none, make a new one:
+             VisualizerWindow m_window = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
+             m_window.Show();
+             m_window.wantsMouseMove = true;
+             m_window.CheckForResizing();
              //window.fitScreenSizeScale();
+         }
+
+         void Update() {
+             if (m_isTestCallLua)
+                 Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
+             Repaint();
+         }
+
+         public void onSessionMessage(string strInfo)
+         {
+             Debug.Log(strInfo);
+             
+             if (string.IsNullOrEmpty(strInfo))
+                 return;
+             
+             string templateJsonText = "{ \"content\":[$$],}";
+             JSONObject json = new JSONObject(templateJsonText.Replace("$$", strInfo));
+             if (json.type != JSONObject.Type.OBJECT)
+                 return;
+
+             if (json.list.Count != 1)
+                 return;
+
+             JSONObject jsonContent = json.GetField("content");
+
+             if (!jsonContent)
+                 return;
+
+             if (!jsonContent.IsArray)
+                 return;
+
+             if (jsonContent.list.Count != 1)
+                 return;
+
+             VisualizerWindow myWindow = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
+             myWindow.handleSessionMessage(jsonContent);
+
+             myWindow.Repaint();
+         }
+
+         private void handleSessionMessage(JSONObject jsonMsg) {
+             if (m_data!=null&&m_data.Root != null && m_data.Root.callStats != null)
+             {
+                 for (int i = 0; i < jsonMsg.list.Count; i++)
+                 {
+                     JSONObject jsonObj = (JSONObject)jsonMsg.list[i];
+                     HanoiNode newNode = null;
+
+                     bool isFrameInfo = jsonObj.GetField("frameID");
+                     //是帧信息
+                     if (isFrameInfo)
+                     {
+                         newNode = new HanoiFrameInfo(m_data.Root.callStats);
+                     }
+                     else
+                     {
+                         //函数信息
+                         newNode = new HanoiNode(m_data.Root.callStats);
+                     }
+                     if (m_data.readObject(jsonObj, newNode))
+                     {
+                         m_data.Root.callStats.Children.Add(newNode);
+                     }
+                 }
+             }
+
+             JSONObject j = (JSONObject)jsonMsg.list[0];
+
+             JSONObject luaConsuming = j.GetField("luaConsuming");
+             if (luaConsuming)
+             {
+                 if (!luaConsuming.IsNumber)
+                 {
+                     Debug.LogFormat("luaConsuming load error");
+                     return;
+                 }
+
+                 if (luaConsuming && luaConsuming.IsNumber)
+                 {
+                     JSONObject funConsuming = j.GetField("funConsuming");
+
+                     JSONObject frameTime = j.GetField("frameTime");
+                     if (!frameTime || !frameTime.IsNumber)
+                     {
+                         Debug.LogFormat("frameTime load error");
+                         return;                            
+                     }
+
+                     JSONObject frameInterval = j.GetField("frameInterval");
+                     if (!frameInterval || !frameInterval.IsNumber)
+                     {
+                         Debug.LogFormat("frameInterval load error");
+                         return;
+                     }
+
+
+                     GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_UNEXCLUSIVE, new DataInfo((float)luaConsuming.n,frameTime.f));
+                     GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE, new DataInfo((float)(funConsuming.n - luaConsuming.n), frameTime.f));
+                     GraphIt.PauseGraph(GRAPH_TIMECONSUMING);
+                     GraphIt.StepGraph(GRAPH_TIMECONSUMING);
+
+                     GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_UNEXCLUSIVE, new DataInfo((float)(luaConsuming.n / frameInterval.n) * 100.0f, frameTime.f));
+                     GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_EXCLUSIVE, new DataInfo((float)((funConsuming.n - luaConsuming.n) / frameInterval.n * 100.0f), frameTime.f));
+                     GraphIt.PauseGraph(GRAPH_TIME_PERCENT);
+                     GraphIt.StepGraph(GRAPH_TIME_PERCENT);
+
+                 }
+                 else
+                 {
+                     Debug.LogFormat("timeConsuming load error");
+                 }
+             }
+         }
+
+         void OnDestroy() {
+             if (!Lua.Instance.IsRegisterLuaProfilerCallback())
+                 Lua.Instance.UnRegisterLuaProfilerCallback();
          }
 
          public VisualizerWindow()
@@ -46,6 +176,7 @@ using System.Collections;
 
          public void OnGUI()
          {
+             handleCommandEvent();
              CheckForResizing();
              Handles.BeginGUI();
              Handles.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(1, 1, 1));
@@ -62,18 +193,15 @@ using System.Collections;
                  drawGUIElement();
              }
              GUILayout.EndArea();
+
              //navigation窗口内容
              GUILayout.BeginArea(new Rect(0, m_navigationScreenPosY, m_winWidth, m_navigationScreenHeight));
              {
-                 Rect r = new Rect();
-                 r.position = new Vector2(0, 0);
-                 r.width = m_winWidth;
-                 r.height = m_navigationScreenHeight;
-                 Color bg = Color.red;
-                 bg.a = 0.5f;
-                 Handles.DrawSolidRectangleWithOutline(r, bg, bg);
+                 if (m_data.isHanoiDataHasContent())
+                     GraphItGlobal.DrawGraphs(position, this);
              }
              GUILayout.EndArea();
+
              if (m_data.isHanoiDataLoadSucc())
              {
                  CheckForInput();
@@ -81,17 +209,45 @@ using System.Collections;
                  GUILayout.BeginArea(new Rect(0, m_detailScreenPosY, m_winWidth, m_detailScreenHeight));
                  {
                      Handles.matrix = Matrix4x4.TRS(m_Translation, Quaternion.identity, new Vector3(m_Scale.x, m_Scale.y, 1));
+                     
+                     HanoiUtil.TotalTimeConsuming = HanoiUtil.calculateTotalTimeConsuming(m_data.Root.callStats);
+                     HanoiUtil.CalculateFrameInterval(m_data.Root.callStats, null);
+                     calculateStackHeight();
+
                      calculateScreenClipRange();
-                     drawFrameInfo(m_data.Root.callStats, mousePositionInDrawing.x);
                      DrawHanoiData(m_data.Root);
+
                      drawTimeInterval();
+                     drawFrameInfo(m_data.Root.callStats, mousePositionInDrawing.x);
                      showMouseGlobalTime();
                  }
                  GUILayout.EndArea();
              }
+
              Handles.EndGUI();
          }
 
+         private void reInitHanoiRoot() {
+             m_data.m_hanoiData = new HanoiRoot();
+             m_data.Root.callStats = new HanoiNode(null);
+         }
+
+         private void handleCommandEvent()
+         {
+             if (Event.current.commandName.Equals("AppStarted"))
+             {
+                 if((Lua.Instance!=null) &&!Lua.Instance.IsRegisterLuaProfilerCallback())
+                 {
+                     reInitHanoiRoot();
+                     Lua.Instance.RegisterLuaProfilerCallback(this.onSessionMessage);
+                 }
+             }
+
+             if (Event.current.commandName.Equals("AppStoped"))
+             {
+                 refreshCheckJasonFilesUpadate();
+             }
+         }
          private void drawGUIElement()
          {
              GUILayout.BeginHorizontal();
@@ -111,7 +267,6 @@ using System.Collections;
          {
              if (_selectedJsonFileIndex == currentSelectedIndex)
                  return;
-
              try
              {
                  if (currentSelectedIndex < 0)
@@ -126,7 +281,7 @@ using System.Collections;
                  calculateStackHeight();
                  _selectedJsonFileIndex = currentSelectedIndex;
              }
-             catch (Exception ex)
+             catch (System.Exception ex)
              {
                  _selectedJsonFileIndex = -1;
                  Debug.LogErrorFormat("[Hanoi] Loading session failed. ({0})", ex.Message);
@@ -158,7 +313,7 @@ using System.Collections;
                 }
                 _JsonFilesPath = files;
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Debug.LogException(ex);
                 _JsonFilesPath = new string[] { };
@@ -177,7 +332,7 @@ using System.Collections;
          private void drawFrameInfo(HanoiNode n,float mouseX)
          {
              HanoiUtil.DrawFrameStatementRecursively(n);
-             HanoiUtil.DrawSelectedFrameInfoRecursively(n,mouseX);
+             HanoiUtil.DrawSelectedFrameInfoRecursively(n, mouseX);
          }
 
          /// <summary>
@@ -216,6 +371,9 @@ using System.Collections;
              GUI.color = Color.yellow;
              float timeInterval = getTimeInterval(HanoiUtil.ScreenClipMinX,HanoiUtil.ScreenClipMaxX);
 
+             if ((HanoiUtil.ScreenClipMaxX - HanoiUtil.ScreenClipMinX) / timeInterval > 200)
+                 return;
+
              timeInterval = Mathf.Max(timeInterval,0.001f);
              List<float> timeIntervalPosXList = new List<float>();
              float baseNum= (int)(HanoiUtil.ScreenClipMinX / timeInterval) * timeInterval;
@@ -237,16 +395,13 @@ using System.Collections;
          private float getTimeInterval(float x0, float x1) {
              float screenClipDelta = x1 - x0;
              if (screenClipDelta < 0.1)
-             {
                  return 0.01f;
-             }
 
-             float interval = 10000;
+             float interval = 10000000;
              while (screenClipDelta < interval * 3.0f)
              {
                  interval /= 10;
              }
-   
             return interval;
          }
 
@@ -276,6 +431,10 @@ using System.Collections;
              m_controlScreenHeight = m_winHeight - m_detailScreenHeight - m_navigationScreenHeight;
              m_controlScreenPosY = 0.0f;
 
+             GraphIt.GraphSetupHeight(GRAPH_TIMECONSUMING, m_navigationScreenHeight/2);
+             GraphIt.GraphSetupHeight(GRAPH_TIME_PERCENT, m_navigationScreenHeight/2);
+
+             GraphIt.setWinSize(new Vector2(position.width, position.height));
          }
 
          private void calculateStackHeight() {
@@ -328,10 +487,26 @@ using System.Collections;
              return Mathf.Abs(ViewToDrawingTransformPoint(new Vector2(pixels, 0)).x - ViewToDrawingTransformPoint(new Vector2(0, 0)).x); 
          }
 
+
+         /// <summary>
+         /// 将屏幕中心移动到给定的时间上
+         /// </summary>
+         public void setViewPointToGlobalTime(float globalTime) {
+             m_Scale.x = 25;
+             float viewMidValue = Mathf.Abs(DrawingToViewTransformVector(new Vector2(globalTime, 0)).x);
+             m_Translation.x = -1 * viewMidValue + m_winWidth / 2;
+         }
+
+
          private void CheckForInput()
          {
              switch (Event.current.type)
              {
+                 case EventType.KeyUp:
+                     //setViewPointToGlobalTime(5000);
+                     m_isTestCallLua = !m_isTestCallLua;
+                     EditorApplication.isPaused = false;
+                     break;
                  case EventType.MouseMove:
                      {
                          if (m_picked != null)

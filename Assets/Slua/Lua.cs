@@ -4,14 +4,19 @@ using SLua;
 using LuaInterface;
 using System.Collections.Generic;
 using System.IO;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 
 [SLua.CustomLuaClass]
 public class Lua
 {
+    //public const string g_editorWindow = "LuaProfilerEditorWindow";
+    public const string g_editorWindow = "VisualizerWindow";
     private static Lua m_Instance = null;
 
     public LuaSvr m_LuaSvr = null;
-
     private string m_strPath = Application.temporaryCachePath;
     private string m_strTime = Application.bundleIdentifier + "." + System.DateTime.Now.Year.ToString() + "-" + System.DateTime.Now.Month.ToString() + "-" + System.DateTime.Now.Day.ToString() + "-" + System.DateTime.Now.Hour.ToString() + "-" + System.DateTime.Now.Minute.ToString() + "-" + System.DateTime.Now.Second.ToString();
     public static Lua Instance
@@ -40,16 +45,53 @@ public class Lua
             Directory.CreateDirectory(m_strPath);
         }
     }
+    public bool IsRegisterLuaProfilerCallback()
+    {
+        return LuaDLL.isregister_callback();
+    }
+
+    public void RegisterLuaProfilerCallback(LuaProfilerCallback callback)
+    {
+        LuaDLL.register_callback(callback);
+    }
+
+    public void RegisterLuaProfilerCallback2(string obj,string method)
+    {
+        LuaDLL.register_callback2(obj, method);
+    }
+
+    public void UnRegisterLuaProfilerCallback()
+    {
+        LuaDLL.unregister_callback();
+    }
 
     public void StartLuaProfiler()
     {
         string file = m_strPath + "/" + m_strTime + ".json";
         object o = m_LuaSvr.luaState.getFunction("profiler_start").call(file);
+#if UNITY_EDITOR
+        EditorWindow w = EditorWindow.GetWindow<EditorWindow>(g_editorWindow);
+        if (w.GetType().Name == g_editorWindow)
+        {
+            w.SendEvent(EditorGUIUtility.CommandEvent("AppStarted"));
+        }
+#endif
+#if UNITY_EDITOR
+        if (LuaDLL.isregister_callback() == false)
+            Debug.LogError("no register callback");
+#endif
     }
 
     public void StopLuaProfiler()
     {
         object o = m_LuaSvr.luaState.getFunction("profiler_stop").call();
+#if UNITY_EDITOR
+        EditorWindow w = EditorWindow.GetWindow<EditorWindow>(g_editorWindow);
+        if (w.GetType().Name == g_editorWindow)
+        {
+            w.SendEvent(EditorGUIUtility.CommandEvent("AppStoped"));
+        }
+#endif
     }
 
     public void SetFrameInfo()
