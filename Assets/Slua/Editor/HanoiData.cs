@@ -85,6 +85,10 @@ public class HanoiData
 {
     public HanoiRoot Root { get { return m_hanoiData; } }
 
+    public  bool isHanoiDataLoadSucc(){ 
+        return (m_hanoiData !=null);
+    }
+
     public int MaxStackLevel { get { return m_maxStackLevel; } }
     int m_maxStackLevel = 0;
 
@@ -97,9 +101,10 @@ public class HanoiData
 
     public bool Load(string filename)
     {
+        m_hanoiData = null;
         try
         {
-            string templateJsonText = System.IO.File.ReadAllText("Assets/hanoi-unity-view/luaprofiler_jsonObjTemplates.json");
+            string templateJsonText = System.IO.File.ReadAllText("Assets/Resources/luaprofiler_jsonObjTemplates.json");
             string text = System.IO.File.ReadAllText(filename);
             m_json = new JSONObject(templateJsonText.Replace("$$", text));
 
@@ -108,6 +113,7 @@ public class HanoiData
 
             if (m_json.list.Count != 1)
                 return false;
+
 
             HanoiNode.s_count = 0;
 
