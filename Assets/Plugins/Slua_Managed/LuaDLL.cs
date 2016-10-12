@@ -95,7 +95,13 @@ namespace LuaInterface
         public static extern void frame_profiler(int id,int time);
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern void callback_profiler(LuaProfilerCallback callback);
+        public static extern void register_callback(LuaProfilerCallback callback);
+
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool isregister_callback();
+
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void unregister_callback();
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void luaS_openextlibs(IntPtr L);
