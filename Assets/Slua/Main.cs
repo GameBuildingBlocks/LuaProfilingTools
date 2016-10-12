@@ -99,7 +99,7 @@ public class Main : MonoBehaviour
     public void onUnityMessage(string strInfo)
     {
         Debug.Log(strInfo);
-        print(strInfo);
+        //print(strInfo);
     }
 
 }
