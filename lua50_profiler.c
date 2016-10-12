@@ -287,10 +287,23 @@ DLL_API void frame_profiler(int id,int unitytime)
 	lprofT_frame(id, unitytime);
 }
 
-DLL_API void callback_profiler(void* pcallback)
+DLL_API void register_callback(void* pcallback)
 {
 	if (pcallback)
 	{
 		pOutputCallback = pcallback;
 	}
+}
+
+DLL_API int isregister_callback()
+{
+	if (pOutputCallback)
+		return 1;
+	else
+		return 0;
+}
+
+DLL_API void unregister_callback()
+{
+	pOutputCallback = NULL;
 }

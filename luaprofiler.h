@@ -16,7 +16,11 @@ DLL_API void init_profiler(lua_State *L);
 
 DLL_API void frame_profiler(int id, int unitytime);
 
-DLL_API void callback_profiler(void* pcallback);
+DLL_API void register_callback(void* pcallback);
+
+DLL_API int isregister_callback();
+
+DLL_API void unregister_callback();
 
 DLL_API int add_profiler(int x,int y);
 
