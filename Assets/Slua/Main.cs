@@ -23,7 +23,7 @@ public class Main : MonoBehaviour
 #endif
 
 		Lua.Instance.InitLuaProfiler();
-        Lua.Instance.SetLuaProfilerCallback(onUnityMessage);
+        //Lua.Instance.SetLuaProfilerCallback(onUnityMessage);
     }
 
 	void log(string cond, string trace, LogType lt)
