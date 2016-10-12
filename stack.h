@@ -20,6 +20,9 @@ stack.h:
 
 //extern FILE *outf;
 
+typedef enum {none,lua,nolua}calltype;
+
+
 typedef struct lprofS_sSTACK_RECORD lprofS_STACK_RECORD;
 
 struct lprofS_sSTACK_RECORD {

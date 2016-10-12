@@ -12,7 +12,7 @@ lprof_PREVNODE sPrevNode = { 0,0 };
 double dTotalWriteConsuming = 0.0;
 
 lprofP_OUTPUT pOutputHead = NULL;
-lprofP_OUTPUT pOutputTail = NULL;\
+lprofP_OUTPUT pOutputTail = NULL;
 
 //pOutputCallback = NULL;
 
@@ -56,7 +56,23 @@ void lprofP_addData(char* str)
 {
 	if (pOutputTail)
 	{
-		pOutputTail->data = str;
+		if (pOutputTail->data)
+		{
+			int len = strlen(pOutputTail->data) + strlen(str) + 2;
+			char* psz = (char*)malloc(len);
+			memset(psz, 0x0, len);
+			strcpy(psz, pOutputTail->data);
+			strcat(psz, ",");
+			strcat(psz, str);
+			free(str);
+			free(pOutputTail->data);
+			pOutputTail->data = psz;
+		}
+		else
+		{
+			pOutputTail->data = str;
+		}
+		
 	}
 }
 
@@ -76,7 +92,9 @@ void lprofP_output()
 			{
 				pOutputCallback(psz);
 			}
+			output(psz);
 			free(psz);
+			
 			nLen = strlen(pOut->data) + 2;
 			psz = (char*)malloc(nLen);
 			memset(psz, 0x0, nLen);
@@ -86,11 +104,9 @@ void lprofP_output()
 			{
 				pOutputCallback(psz);
 			}
+			output(psz);
 			free(psz);
-			output(pOut->frame);
-			output(",");
-			output(pOut->data);
-			output(",");
+		
 			sPrevNode.id = pOut->id;
 			sPrevNode.data = 1;
 		}
@@ -107,10 +123,8 @@ void lprofP_output()
 				{
 					pOutputCallback(psz);
 				}
+				output(psz);
 				free(psz);
-
-				output(pOut->frame);
-				output(",");
 				sPrevNode.id = pOut->id;
 				sPrevNode.data = 0;
 			}
