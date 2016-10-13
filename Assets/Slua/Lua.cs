@@ -44,15 +44,10 @@ public class Lua
         {
             Directory.CreateDirectory(m_strPath);
         }
-
-#if UNITY_EDITOR
-        EditorWindow w = EditorWindow.GetWindow<EditorWindow>(g_editorWindow);
-        if (w.GetType().Name == g_editorWindow)
-        {
-            w.SendEvent(EditorGUIUtility.CommandEvent("AppStarted"));
-        }
-#endif
-
+    }
+    public bool IsRegisterLuaProfilerCallback()
+    {
+        return LuaDLL.isregister_callback();
     }
 
     public void RegisterLuaProfilerCallback(LuaProfilerCallback callback)
@@ -70,6 +65,13 @@ public class Lua
         string file = m_strPath + "/" + m_strTime + ".json";
         object o = m_LuaSvr.luaState.getFunction("profiler_start").call(file);
 #if UNITY_EDITOR
+        EditorWindow w = EditorWindow.GetWindow<EditorWindow>(g_editorWindow);
+        if (w.GetType().Name == g_editorWindow)
+        {
+            w.SendEvent(EditorGUIUtility.CommandEvent("AppStarted"));
+        }
+#endif
+#if UNITY_EDITOR
         if (LuaDLL.isregister_callback() == false)
             Debug.LogError("no register callback");
 #endif
@@ -78,6 +80,13 @@ public class Lua
     public void StopLuaProfiler()
     {
         object o = m_LuaSvr.luaState.getFunction("profiler_stop").call();
+#if UNITY_EDITOR
+        EditorWindow w = EditorWindow.GetWindow<EditorWindow>(g_editorWindow);
+        if (w.GetType().Name == g_editorWindow)
+        {
+            w.SendEvent(EditorGUIUtility.CommandEvent("AppStoped"));
+        }
+#endif
     }
 
     public void SetFrameInfo()
