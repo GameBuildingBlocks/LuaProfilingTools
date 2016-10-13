@@ -150,4 +150,5 @@ void lprofP_close()
 	pOutputHead = NULL;
 	pOutputTail = NULL;
 	dTotalWriteConsuming = 0.0;
+	nCacheNode = 0;
 }
