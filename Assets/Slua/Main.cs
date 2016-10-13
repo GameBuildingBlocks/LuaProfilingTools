@@ -23,7 +23,6 @@ public class Main : MonoBehaviour
 #endif
 
 		Lua.Instance.InitLuaProfiler();
-        //Lua.Instance.SetLuaProfilerCallback(onUnityMessage);
     }
 
 	void log(string cond, string trace, LogType lt)
@@ -96,10 +95,20 @@ public class Main : MonoBehaviour
         }
     }
 
+    public void onClickCallback()
+    {
+        Lua.Instance.RegisterLuaProfilerCallback(onUnityMessage);
+    }
+
     public void onUnityMessage(string strInfo)
     {
         Debug.Log(strInfo);
         //print(strInfo);
+    }
+
+    void OnDestroy()
+    {
+        onClickStop();
     }
 
 }
