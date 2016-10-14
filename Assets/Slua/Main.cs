@@ -97,7 +97,8 @@ public class Main : MonoBehaviour
 
     public void onClickCallback()
     {
-        Lua.Instance.RegisterLuaProfilerCallback(onUnityMessage);
+        //Lua.Instance.RegisterLuaProfilerCallback(onUnityMessage);
+        Lua.Instance.RegisterLuaProfilerCallback2("Canvas", "onUnityMessage");
     }
 
     public void onUnityMessage(string strInfo)

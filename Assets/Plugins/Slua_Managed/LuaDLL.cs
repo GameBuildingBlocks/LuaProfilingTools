@@ -98,6 +98,9 @@ namespace LuaInterface
         public static extern void register_callback(LuaProfilerCallback callback);
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void register_callback2(string obj,string method);
+
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern bool isregister_callback();
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
