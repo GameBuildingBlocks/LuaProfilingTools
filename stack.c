@@ -41,6 +41,7 @@ int   nOutputCount = 0;
 long node_size = 0;
 int first_flush = 1;
 double dPreFrameLuaConsuming = 0.0;
+double dPreFrameFunConsuming = 0.0;
 
 //FILE* outf;
 //LARGE_INTEGER time_maker_golbal_begin;
@@ -49,7 +50,7 @@ double dPreFrameLuaConsuming = 0.0;
 LARGE_INTEGER time_maker_golbal_start;
 LARGE_INTEGER time_maker_golbal_stop;
 
-cJSON* treeTojson(lprofT_NODE* p,double* pdLuaConsuming);
+cJSON* treeTojson(lprofT_NODE* p,double* pdLuaConsuming,double* pdFunConsuming);
 
 /*
 void output(const char *format, ...) {
@@ -344,7 +345,8 @@ void lprofT_tojson()
 	if (pTreeRoot)
 	{
 		double dLuaConsuming = 0.0;
-		cJSON* root = treeTojson(pTreeRoot,none,&dLuaConsuming);
+		double dFunConsuming = 0.0;
+		cJSON* root = treeTojson(pTreeRoot,none,&dLuaConsuming,&dFunConsuming);
 		char *jstring = cJSON_Print(root);
 		//output(jstring);
 		//output(",");
@@ -353,6 +355,7 @@ void lprofT_tojson()
 		//free(jstring);
 		//nTotalCall = 0;
 		dPreFrameLuaConsuming += dLuaConsuming;
+		dPreFrameFunConsuming += dFunConsuming;
 		pTreeRoot = NULL;
 /*
 #ifdef _MSC_VER
@@ -409,7 +412,7 @@ void lprofT_close()
 }
 */
 
-cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming)
+cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming, double* pdFunConsuming)
 {
 	assert(p);
 	cJSON* root = NULL;
@@ -462,6 +465,7 @@ cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming)
 		{
 			if (strcmp(p->pNode->what, "Lua") == 0)
 				*pdLuaConsuming = consumingTimer;
+			*pdFunConsuming = consumingTimer;
 		}
 
 		if (strcmp(p->pNode->what, "Lua") == 0)
@@ -473,7 +477,7 @@ cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming)
 		if (pChild)
 			cJSON_AddItemToObject(root, "children", pChild);
 		for (int i = 0; i < p->nChildCount; i++)
-			cJSON_AddItemToArray(pChild, treeTojson(p->ppChild[i], curCalltype,pdLuaConsuming));
+			cJSON_AddItemToArray(pChild, treeTojson(p->ppChild[i], curCalltype,pdLuaConsuming,pdFunConsuming));
 		lprofT_free(p);
 	}
 	/*
@@ -591,8 +595,12 @@ cJSON* frameTojson(int id ,int unitytime)
 	cJSON_AddItemToObject(root, "frameTime", cJSON_CreateNumber(frametime));
 	cJSON_AddItemToObject(root, "frameUnityTime", cJSON_CreateNumber(unitytime));
 	cJSON_AddItemToObject(root, "writefileTime", cJSON_CreateNumber(dTotalWriteConsuming));
-	if(dPreFrameLuaConsuming > 0)
+	if (dPreFrameLuaConsuming > 0)
+	{
 		cJSON_AddItemToObject(root, "luaConsuming", cJSON_CreateNumber(dPreFrameLuaConsuming));
+		cJSON_AddItemToObject(root, "funConsuming", cJSON_CreateNumber(dPreFrameFunConsuming));
+	}
+		
 	//cJSON_AddItemToObject(root, "frameInterval", cJSON_CreateNumber(frametime));
 	
 	return root;
@@ -610,6 +618,7 @@ void lprofT_frame(int id, int unitytime)
 		//output(",");
 		cJSON_Delete(root);
 		dPreFrameLuaConsuming = 0.0;
+		dPreFrameFunConsuming = 0.0;
 	}
 }
 

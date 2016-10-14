@@ -279,6 +279,8 @@ DLL_API void init_profiler(lua_State *L)
 {
 	profiler_open(L);
 	pOutputCallback = NULL;
+	pUnityObject = NULL;
+	pUnityMethod = NULL;
 	//lprofT_init();
 }
 
@@ -306,4 +308,33 @@ DLL_API int isregister_callback()
 DLL_API void unregister_callback()
 {
 	pOutputCallback = NULL;
+	if (pUnityObject)
+		free(pUnityObject);
+	if (pUnityMethod)
+		free(pUnityMethod);
+	pUnityObject = pUnityMethod = NULL;
+
+}
+
+DLL_API void register_callback2(char* pobject, char* pmethod)
+{
+	if (pobject)
+	{
+		if (pUnityObject)
+			free(pUnityObject);
+		int len = strlen(pobject) + 1;
+		pUnityObject = (char*)malloc(len);
+		memset(pUnityObject, 0x0, len);
+		strcpy(pUnityObject, pobject);
+	}
+	if (pmethod)
+	{
+		if (pUnityMethod)
+			free(pUnityMethod);
+		int len = strlen(pmethod) + 1;
+		pUnityMethod = (char*)malloc(len);
+		memset(pUnityMethod, 0x0, len);
+		strcpy(pUnityMethod, pmethod);
+	}
+	
 }

@@ -14,7 +14,25 @@ double dTotalWriteConsuming = 0.0;
 lprofP_OUTPUT pOutputHead = NULL;
 lprofP_OUTPUT pOutputTail = NULL;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+	//void UnitySendMessage(const char* obj, const char* method, const char* msg);
+#ifdef __cplusplus
+}
+#endif
+
 //pOutputCallback = NULL;
+
+void sendUnityMessage(const char* pMsg)
+{
+#ifdef __cplusplus
+	if (pUnityMethod && pUnityObject)
+		UnitySendMessage(pUnityObject, pUnityMethod, pMsg);
+#endif
+	if (pOutputCallback)
+		pOutputCallback(pMsg);
+}
 
 void output(const char *format, ...) {
 	LARGE_INTEGER timestart;
@@ -100,10 +118,7 @@ void lprofP_output()
 			memset(psz, 0x0, nLen);
 			strcpy(psz, pOut->data);
 			strcat(psz, ",");
-			if (pOutputCallback)
-			{
-				pOutputCallback(psz);
-			}
+			sendUnityMessage(psz);
 			output(psz);
 			free(psz);
 		
@@ -119,10 +134,7 @@ void lprofP_output()
 				memset(psz, 0x0, nLen);
 				strcpy(psz, pOut->frame);
 				strcat(psz, ",");
-				if (pOutputCallback)
-				{
-					pOutputCallback(psz);
-				}
+				sendUnityMessage(psz);
 				output(psz);
 				free(psz);
 				sPrevNode.id = pOut->id;
@@ -141,11 +153,12 @@ void lprofP_close()
 {
 	sPrevNode.id = 0;
 	sPrevNode.data = 0;
-	lprofP_OUTPUT pOut = pOutputHead;
-	while (pOut)
+	lprofP_OUTPUT pCurrent = pOutputHead;
+	while (pCurrent)
 	{
-		pOut = pOutputHead->next;
-		free(pOutputHead);
+		lprofP_OUTPUT pNext = pCurrent->next;
+		free(pCurrent);
+		pCurrent = pNext;
 	}
 	pOutputHead = NULL;
 	pOutputTail = NULL;

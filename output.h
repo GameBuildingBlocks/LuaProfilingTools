@@ -15,6 +15,10 @@ typedef void(_stdcall *pfnoutputCallback)(char* info);
 
 pfnoutputCallback pOutputCallback;
 
+
+char* pUnityObject;
+char* pUnityMethod;
+
 double dTotalWriteConsuming;
 
 typedef struct tag_lprof_OUTPUT lprof_OUTPUT;

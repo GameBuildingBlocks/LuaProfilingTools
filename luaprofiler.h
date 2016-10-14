@@ -18,6 +18,8 @@ DLL_API void frame_profiler(int id, int unitytime);
 
 DLL_API void register_callback(void* pcallback);
 
+DLL_API void register_callback2(char* pobject,char* pmethod);
+
 DLL_API int isregister_callback();
 
 DLL_API void unregister_callback();
