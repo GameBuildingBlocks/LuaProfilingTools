@@ -27,6 +27,7 @@ stack.c:
 #endif
 */
 int MAX_CHILD_SIZE = 20;
+const char* gpsz_luamark = "Lua";
 
 lprofT_NODE* pTreeRoot = NULL;
 lprofT_NODE* pTreeNode = NULL;
@@ -36,12 +37,13 @@ char* pOutput = NULL;
 int   nMaxStackLevel = 0;
 int   nTotalCall = 0;
 double dTotalTimeConsuming = 0.0;
-double dFrameInterval = 0.0;
+
 int   nOutputCount = 0;
 long node_size = 0;
 int first_flush = 1;
 double dPreFrameLuaConsuming = 0.0;
 double dPreFrameFunConsuming = 0.0;
+double dPreFrameTime = 0.0;
 
 //FILE* outf;
 //LARGE_INTEGER time_maker_golbal_begin;
@@ -447,28 +449,28 @@ cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming, d
 		calltype curCalltype;
 		if (lua == precalltype)
 		{
-			if (*pdLuaConsuming <= 0.0 && strcmp(p->pNode->what, "Lua") == 0)
+			if (*pdLuaConsuming <= 0.0 && strcmp(p->pNode->what, gpsz_luamark) == 0)
 			{
 				*pdLuaConsuming = consumingTimer;
 			}
-			else if (*pdLuaConsuming >= 0.0 && strcmp(p->pNode->what, "Lua") != 0)
+			else if (*pdLuaConsuming >= 0.0 && strcmp(p->pNode->what, gpsz_luamark) != 0)
 			{
 				*pdLuaConsuming -= consumingTimer;
 			}
 		}
 		else if (nolua == precalltype)
 		{
-			if (strcmp(p->pNode->what, "Lua") == 0)
+			if (strcmp(p->pNode->what, gpsz_luamark) == 0)
 				*pdLuaConsuming += consumingTimer;
 		}
 		else if (none == precalltype)
 		{
-			if (strcmp(p->pNode->what, "Lua") == 0)
+			if (strcmp(p->pNode->what, gpsz_luamark) == 0)
 				*pdLuaConsuming = consumingTimer;
 			*pdFunConsuming = consumingTimer;
 		}
 
-		if (strcmp(p->pNode->what, "Lua") == 0)
+		if (strcmp(p->pNode->what, gpsz_luamark) == 0)
 			curCalltype = lua;
 		else
 			curCalltype = nolua;
@@ -582,7 +584,7 @@ void lprofT_close()
 	nTotalCall = 0;
 	dTotalTimeConsuming = 0.0;
 	pTreeRoot = NULL;
-	dFrameInterval = 0;
+	dPreFrameTime = 0.0;
 
 }
 
@@ -590,6 +592,7 @@ cJSON* frameTojson(int id ,int unitytime)
 {
 	cJSON* root = NULL;
 	double frametime = lprofC_get_seconds2(&time_maker_golbal_start);
+	
 	root = cJSON_CreateObject();
 	cJSON_AddItemToObject(root, "frameID", cJSON_CreateNumber(id));
 	cJSON_AddItemToObject(root, "frameTime", cJSON_CreateNumber(frametime));
@@ -599,8 +602,10 @@ cJSON* frameTojson(int id ,int unitytime)
 	{
 		cJSON_AddItemToObject(root, "luaConsuming", cJSON_CreateNumber(dPreFrameLuaConsuming));
 		cJSON_AddItemToObject(root, "funConsuming", cJSON_CreateNumber(dPreFrameFunConsuming));
+		double dFrameInterval = frametime - dPreFrameTime;
+		cJSON_AddItemToObject(root, "frameInterval", cJSON_CreateNumber(dFrameInterval));
 	}
-		
+	dPreFrameTime = frametime;
 	//cJSON_AddItemToObject(root, "frameInterval", cJSON_CreateNumber(frametime));
 	
 	return root;
