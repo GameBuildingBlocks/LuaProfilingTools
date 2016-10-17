@@ -6,7 +6,7 @@ using System.Collections.Generic;
 public class  DataInfo{
     private float m_graphNum;
     private float m_frameTime;
-    private int  m_frameNum;
+    private float m_frameInterval;
     public DataInfo(float graphNum)
     {
         m_graphNum = graphNum;
@@ -15,6 +15,13 @@ public class  DataInfo{
     {
         m_graphNum = graphNum;
         m_frameTime = frameTime;
+    }
+
+    public DataInfo(float graphNum, float frameTime,float frameInterval)
+    {
+        m_graphNum = graphNum;
+        m_frameTime = frameTime;
+        m_frameInterval = frameInterval;
     }
 
     public float GraphNum{
@@ -36,14 +43,14 @@ public class  DataInfo{
         set { m_frameTime = value; }
     }
 
-    public int FrameNum
+    public float FrameInterval
     {
         get
         {
-            return m_frameNum;
+            return m_frameInterval;
         }
 
-        set { m_frameNum = value; }
+        set { m_frameInterval = value; }
     }
 }
 
@@ -51,7 +58,7 @@ public class GraphItDataInternal
 {
     public GraphItDataInternal( int subgraph_index )
     {
-        mDataPoints = new List<DataInfo>();
+        mDataInfos = new List<DataInfo>();
         mCounter = null;
         mMin = 0.0f;
         mMax = 0.0f;
@@ -77,7 +84,7 @@ public class GraphItDataInternal
                 break;
         }
     }
-    public List<DataInfo> mDataPoints;
+    public List<DataInfo> mDataInfos;
     public DataInfo mCounter;
     public float mMin;
     public float mMax;
@@ -103,7 +110,6 @@ public class GraphItData
     public bool mFixedUpdate;
 
     public int mWindowSize;
-    public bool mFullArray;
 
     public bool mSharedYAxis;
 
@@ -124,7 +130,6 @@ public class GraphItData
         mFixedUpdate = false;
 
         mWindowSize = DEFAULT_SAMPLES;
-        mFullArray = false;
 
         mSharedYAxis = false;
         mHidden = false;
@@ -143,16 +148,7 @@ public class GraphItData
 
     public int GraphLength()
     {
-        //if (mFullArray)
-        //{
-        //    return GraphFullLength();
-        //}
         return mCurrentIndex;
-    }
-
-    public int GraphFullLength()
-    {
-        return mWindowSize;
     }
 
     public float GetMin( string subgraph )
@@ -244,7 +240,6 @@ public class GraphIt : MonoBehaviour
     public const string BASE_GRAPH = "base";
     public const string VERSION = "1.2.0";
     public Dictionary<string, GraphItData> Graphs = new Dictionary<string, GraphItData>();
-    public static Vector2 winSize;
     static GraphIt mInstance = null;
 #endif
 
@@ -265,35 +260,46 @@ public class GraphIt : MonoBehaviour
 #endif
         }
     }
+
+    public static void Clear()
+    {
+        if (!mInstance) 
+            return;
+        foreach (KeyValuePair<string, GraphItData> kv in mInstance.Graphs)
+        {
+            GraphItData g = kv.Value;
+            g.mCurrentIndex = 0;
+            foreach (KeyValuePair<string, GraphItDataInternal> entry in g.mData)
+            {
+                GraphItDataInternal gdi = entry.Value;
+                gdi.mDataInfos.Clear();
+            }
+        }
+    }
+
     void StepGraphInternal(GraphItData graph)
     {
 #if UNITY_EDITOR
         foreach (KeyValuePair<string, GraphItDataInternal> entry in graph.mData)
         {
             GraphItDataInternal g = entry.Value;
-            g.mDataPoints.Add(g.mCounter);
-            //g.mCounter = null;
+            g.mDataInfos.Add(g.mCounter);
         }
 
-        //graph.mCurrentIndex = (graph.mCurrentIndex + 1) % graph.mWindowSize;
-        graph.mCurrentIndex = (graph.mCurrentIndex + 1) ;
-        //if (graph.mCurrentIndex == 0)
-        //{
-        //    graph.mFullArray = true;
-        //}
+        graph.mCurrentIndex = graph.mCurrentIndex + 1 ;
 
         foreach (KeyValuePair<string, GraphItDataInternal> entry in graph.mData)
         {
             GraphItDataInternal g = entry.Value;
 
-            float sum = g.mDataPoints[0].GraphNum;
-            float min = g.mDataPoints[0].GraphNum;
-            float max = g.mDataPoints[0].GraphNum;
+            float sum = g.mDataInfos[0].GraphNum;
+            float min = g.mDataInfos[0].GraphNum;
+            float max = g.mDataInfos[0].GraphNum;
             for (int i = 1; i < graph.GraphLength(); ++i)
             {
-                sum += g.mDataPoints[i].GraphNum;
-                min = Mathf.Min(min, g.mDataPoints[i].GraphNum);
-                max = Mathf.Max(max, g.mDataPoints[i].GraphNum);
+                sum += g.mDataInfos[i].GraphNum;
+                min = Mathf.Min(min, g.mDataInfos[i].GraphNum);
+                max = Mathf.Max(max, g.mDataInfos[i].GraphNum);
             }
             if (graph.mInclude0)
             {
@@ -306,22 +312,15 @@ public class GraphIt : MonoBehaviour
             int recent_count = GraphItData.RECENT_WINDOW_SIZE;
             if (recent_start < 0)
             {
-                if (graph.mFullArray)
-                {
-                    recent_start += GraphItData.DEFAULT_SAMPLES;
-                }
-                else
-                {
-                    recent_count = graph.GraphLength();
-                    recent_start = 0;
-                }
+                recent_count = graph.GraphLength();
+                recent_start = 0;
             }
 
             float recent_sum = 0.0f;
             for (int i = 0; i < recent_count; ++i)
             {
-                recent_sum += g.mDataPoints[recent_start].GraphNum;
-                recent_start = (recent_start + 1) % GraphItData.DEFAULT_SAMPLES;
+                recent_sum += g.mDataInfos[recent_start].GraphNum;
+                recent_start = (recent_start + 1) % g.mDataInfos.Count;
             }
 
             g.mMin = min;
@@ -361,14 +360,6 @@ public class GraphIt : MonoBehaviour
         }
 #endif
     }
-
-    public static void setWinSize(Vector2 WinSize)
-    {
-#if UNITY_EDITOR
-       winSize = WinSize;
-#endif
-    }
-
 
     /// <summary>
     /// Optional setup function that allows you to specify both the inclusion of Y-axis 0, and how many samples to track.
@@ -538,28 +529,6 @@ public class GraphIt : MonoBehaviour
 #endif
     }
 
-    /// <summary>
-    /// Log a value of one to the specified graph. This can be used for counting occurances of a code path in a frame.
-    /// </summary>
-    /// <param name="graph"></param>
-    public static void Log(string graph)
-    {
-#if UNITY_EDITOR
-       // Log(graph, BASE_GRAPH, 1.0f);
-#endif
-    }
-
-    /// <summary>
-    /// Log a value of one to the specified graph. This can be used for counting occurances of a code path in a frame.
-    /// </summary>
-    /// <param name="graph"></param>
-    /// <param name="subgraph"></param>
-    public static void Log(string graph, string subgraph)
-    {
-#if UNITY_EDITOR
-        //Log(graph, subgraph, 1.0f);
-#endif
-    }
     
     /// <summary>
     /// Log floating point data for this fixed frame. Mutiple calls to this with the same graph will add logged values together.
@@ -587,28 +556,6 @@ public class GraphIt : MonoBehaviour
 #endif
     }
 
-    /// <summary>
-    /// Log an event to the specified graph this fixed frame. This can be used for counting occurances of a code path in a frame.
-    /// </summary>
-    /// <param name="graph"></param>
-    public static void LogFixed(string graph)
-    {
-#if UNITY_EDITOR
-      //  LogFixed(graph, BASE_GRAPH, 1.0f);
-#endif
-    }
-
-    /// <summary>
-    /// Log an event to the specified graph/subgraph this fixed frame. This can be used for counting occurances of a code path in a frame.
-    /// </summary>
-    /// <param name="graph"></param>
-    /// <param name="subgraph"></param>
-    public static void LogFixed(string graph, string subgraph)
-    {
-#if UNITY_EDITOR
-        //LogFixed(graph, subgraph, 1.0f);
-#endif
-    }
 
     /// <summary>
     /// StepGraph allows you to step this graph to the next frame manually. This is useful if you want to log multiple frames worth of data on a single frame.

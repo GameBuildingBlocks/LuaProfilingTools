@@ -101,51 +101,42 @@ public class HanoiData
     JSONObject m_json;
     public HanoiRoot m_hanoiData;
 
+    public static string GRAPH_TIMECONSUMING = "timeConsuming";
+    public static string SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE = "luaTimeConsumingExclusive";
+    public static string SUBGRAPH_LUA_TIMECONSUMING_UNEXCLUSIVE = "luaTimeConsumingUnExclusive";
+
+    public static string GRAPH_TIME_PERCENT = "timePercent";
+    public static string SUBGRAPH_LUA_PERCENT_EXCLUSIVE = "luaTimePercentExclusive";
+    public static string SUBGRAPH_LUA_PERCENT_UNEXCLUSIVE = "luaTimePercentUnExclusive";
+
     public bool Load(string filename)
     {
         m_hanoiData = null;
+        GraphIt.Clear();
         try
         {
-            string templateJsonText = "{ \"content\":[$$],}";
             string text = System.IO.File.ReadAllText(filename);
+            //invaild json doc ,convert correct;
+            string templateJsonText = "{ \"content\":[$$],}";
             m_json = new JSONObject(templateJsonText.Replace("$$", text));
-
-            if (m_json.type != JSONObject.Type.OBJECT)
-                return false;
-
-            if (m_json.list.Count != 1)
-                return false;
+            if (m_json.IsNull)
+                throw new System.Exception("json load error");
 
             HanoiNode.s_count = 0;
 
             m_hanoiData = new HanoiRoot();
+            m_hanoiData.callStats = new HanoiNode(null);
             if (m_json.GetField("content")&& m_json.GetField("content").IsArray)
             {
                 JSONObject jsonContent =m_json.GetField("content");
-                HanoiNode contentNode = new HanoiNode(null);
 
                 for (int i = 0; i < jsonContent.list.Count; i++)
                 {
                     JSONObject j = (JSONObject)jsonContent.list[i];
-                    HanoiNode newNode =null;
-                    
-                    bool isFrameInfo = j.GetField("frameID");
-                    //是帧信息
-                    if (isFrameInfo)
-                    {
-                        newNode = new HanoiFrameInfo(contentNode);
-                    }
-                    else
-                    {
-                        //函数信息
-                        newNode = new HanoiNode(contentNode);
-                    }
-                    if (readObject(j, newNode))
-                    {
-                        contentNode.Children.Add(newNode);
-                    }
+
+                    handleMsgForDetailScreen(j);
+                    hanleMsgForNavigationScreen(j);
                 }
-                Root.callStats = contentNode;
             }
 
             Debug.LogFormat("reading {0} objects.", HanoiNode.s_count);
@@ -155,8 +146,76 @@ public class HanoiData
             Debug.LogException(e);
             return false;
         }
-
         return true;
+    }
+
+    public void handleMsgForDetailScreen(JSONObject jsonMsg)
+    {
+        if (jsonMsg.IsNull || jsonMsg.type != JSONObject.Type.OBJECT)
+            return;
+        if (Root == null || Root.callStats == null)
+            return;
+
+        HanoiNode newNode = null;
+
+        bool isFrameInfo = jsonMsg.GetField("frameID");
+        //是帧信息
+        if (isFrameInfo)
+        {
+            newNode = new HanoiFrameInfo(Root.callStats);
+        }
+        else
+        {
+            //函数信息
+            newNode = new HanoiNode(Root.callStats);
+        }
+        if (readObject(jsonMsg, newNode))
+        {
+            Root.callStats.Children.Add(newNode);
+        }
+    }
+
+    public  void hanleMsgForNavigationScreen(JSONObject jsonMsg)
+    {
+        if (jsonMsg.IsNull || jsonMsg.type != JSONObject.Type.OBJECT)
+            return;
+
+        JSONObject luaConsuming = jsonMsg.GetField("luaConsuming");
+        if (!luaConsuming ||!luaConsuming.IsNumber){
+            //Debug.LogFormat("luaConsuming load error");
+            return;
+        }
+
+        JSONObject funConsuming = jsonMsg.GetField("funConsuming");
+        if (!funConsuming ||!funConsuming.IsNumber){
+            Debug.LogFormat("funConsuming load error");
+            return;
+        }
+
+        JSONObject frameTime = jsonMsg.GetField("frameTime");
+        if (!frameTime || !frameTime.IsNumber)
+        {
+            Debug.LogFormat("frameTime load error");
+            return;
+        }
+
+        JSONObject frameInterval = jsonMsg.GetField("frameInterval");
+        if (!frameInterval || !frameInterval.IsNumber)
+        {
+            Debug.LogFormat("frameInterval load error");
+            return;
+        }
+
+        GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_UNEXCLUSIVE, new DataInfo((float)luaConsuming.n, frameTime.f,(float)frameInterval.n));
+        GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE, new DataInfo((float)(funConsuming.n - luaConsuming.n), frameTime.f,(float)frameInterval.n));
+        GraphIt.PauseGraph(GRAPH_TIMECONSUMING);
+        GraphIt.StepGraph(GRAPH_TIMECONSUMING);
+
+        GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_UNEXCLUSIVE, new DataInfo((float)(luaConsuming.n / frameInterval.n) * 100.0f, frameTime.f, (float)frameInterval.n));
+        GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_EXCLUSIVE, new DataInfo((float)((funConsuming.n - luaConsuming.n) / frameInterval.n * 100.0f), frameTime.f, (float)frameInterval.n));
+        GraphIt.PauseGraph(GRAPH_TIME_PERCENT);
+        GraphIt.StepGraph(GRAPH_TIME_PERCENT);
+
     }
 
     public bool readObject(JSONObject obj, HanoiNode node)
