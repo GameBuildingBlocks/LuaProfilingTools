@@ -112,4 +112,12 @@ public class Main : MonoBehaviour
         onClickStop();
     }
 
+    public void onClickLuaCallCSharp()
+    {
+        if(isStarted)
+        {
+            Lua.Instance.m_LuaSvr.luaState.getFunction("test").call();
+        }
+    }
+
 }
