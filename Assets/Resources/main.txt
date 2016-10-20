@@ -1,6 +1,28 @@
-
+import "UnityEngine"
 function start()
-	foo(1,2,3)
+	--foo(1,2,3)
+end
+
+function test()
+	local csharp = BindCSharp.staticCustom()
+	--local csharp = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube)
+	if csharp then
+		print('create BindCSharp ok')
+		--csharp.ShowLogger('test bind csharp')
+	else
+		print('BindCSharp is nil')
+	end
+  --[[
+	BindCSharp.ShowLogger('test bind csharp')
+	local cube = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube)
+	local mat = cube:GetComponent(Renderer).material
+	mat.color=Color.red
+	cube.name="Script cube"
+
+	local pos = Vector3(10,10,10)+Vector3(1,1,1)
+	cube.transform.position = pos
+	cube.transform.localScale = Vector3(10,10,10)
+	]]--
 end
 
 function main()
