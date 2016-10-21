@@ -19,6 +19,8 @@ using System.Security;
          [SerializeField]
          internal Vector2 m_Translation = new Vector2(0, 0);
 
+         int selGridInt;
+
          MouseInArea m_mouseArea = MouseInArea.none;
 
          float targetTranslationX = 0;
@@ -173,6 +175,7 @@ using System.Security;
              m_data.m_hanoiData = new HanoiRoot();
              m_data.Root.callStats = new HanoiNode(null);
              _selectedJsonFileIndex = _JsonFilesPath.Length - 1;
+             GraphItWindow.mouseXOnLeftBtn = -1;
          }
 
          private void handleCommandEvent()
@@ -203,7 +206,9 @@ using System.Security;
                  _selectedJsonFileIndex = currentSelectedIndex;
                  if (GUILayout.Button("Load",GUILayout.Width(50)))
                     loadSelectedSessions(currentSelectedIndex);
-                 GraphItWindow.SelectTimeLimitIndex = EditorGUILayout.Popup(string.Format("TimeLimit"), GraphItWindow.SelectTimeLimitIndex, GraphItWindow._TimeLimitStrOption, GUILayout.Width(180));
+
+                 GraphItWindow._TimeLimitSelectIndex = GUI.SelectionGrid(new Rect(500, 0, 350, 20), GraphItWindow._TimeLimitSelectIndex, GraphItWindow._TimeLimitStrOption, GraphItWindow._TimeLimitStrOption.Length);
+                 GraphItWindow._PercentLimitSelectIndex = GUI.SelectionGrid(new Rect(950, 0,300, 20), GraphItWindow._PercentLimitSelectIndex, GraphItWindow._PercentLimitStrOption, GraphItWindow._PercentLimitStrOption.Length);
              }
              GUILayout.EndHorizontal();
          }
@@ -289,7 +294,7 @@ using System.Security;
          private void showMouseGlobalTime() {
              float globalTimeLabelHight = m_detailScreenHeight / 10;
              Rect r = new Rect();
-             r.position = new Vector2(mousePositionInDrawing.x, globalTimeLabelHight);
+             r.position = new Vector2(mousePositionInDrawing.x, globalTimeLabelHight * 2);
              r.width = HanoiVars.LabelBackgroundWidth/2;
              r.height = 15;
              Color bg = Color.yellow;
@@ -299,7 +304,7 @@ using System.Security;
              GUI.color = Color.black;
              Handles.color = Color.yellow;
              Handles.DrawLine(new Vector3(mousePositionInDrawing.x, 0), new Vector3(mousePositionInDrawing.x, m_detailScreenHeight));
-             Handles.Label(new Vector3(mousePositionInDrawing.x, globalTimeLabelHight), string.Format("Time: {0:0.000}", mousePositionInDrawing.x));
+             Handles.Label(new Vector3(mousePositionInDrawing.x, globalTimeLabelHight*2), string.Format("Time: {0:0.000}", mousePositionInDrawing.x));
          }
 
          private bool loadJsonData(string jsonFile)

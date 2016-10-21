@@ -103,11 +103,11 @@ public class HanoiData
 
     public static string GRAPH_TIMECONSUMING = "timeConsuming";
     public static string SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE = "luaTimeConsumingExclusive";
-    public static string SUBGRAPH_LUA_TIMECONSUMING_UNEXCLUSIVE = "luaTimeConsumingUnExclusive";
+    public static string SUBGRAPH_LUA_TIMECONSUMING_INCLUSIVE = "luaTimeConsumingInclusive";
 
     public static string GRAPH_TIME_PERCENT = "timePercent";
     public static string SUBGRAPH_LUA_PERCENT_EXCLUSIVE = "luaTimePercentExclusive";
-    public static string SUBGRAPH_LUA_PERCENT_UNEXCLUSIVE = "luaTimePercentUnExclusive";
+    public static string SUBGRAPH_LUA_PERCENT_INCLUSIVE = "luaTimePercentInclusive";
 
     public bool Load(string filename)
     {
@@ -206,13 +206,13 @@ public class HanoiData
             return;
         }
 
-        GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_UNEXCLUSIVE, new DataInfo((float)luaConsuming.n, frameTime.f,(float)frameInterval.n));
-        GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE, new DataInfo((float)(funConsuming.n - luaConsuming.n), frameTime.f,(float)frameInterval.n));
+        GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_INCLUSIVE, new DataInfo((float)funConsuming.n, frameTime.f, (float)frameInterval.n));
+        GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE, new DataInfo((float)luaConsuming.n, frameTime.f, (float)frameInterval.n));
         GraphIt.PauseGraph(GRAPH_TIMECONSUMING);
         GraphIt.StepGraph(GRAPH_TIMECONSUMING);
 
-        GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_UNEXCLUSIVE, new DataInfo((float)(luaConsuming.n / frameInterval.n) * 100.0f, frameTime.f, (float)frameInterval.n));
-        GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_EXCLUSIVE, new DataInfo((float)((funConsuming.n - luaConsuming.n) / frameInterval.n * 100.0f), frameTime.f, (float)frameInterval.n));
+        GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_INCLUSIVE, new DataInfo((float)(funConsuming.n / frameInterval.n * 100.0f), frameTime.f, (float)frameInterval.n));
+        GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_EXCLUSIVE, new DataInfo((float)(luaConsuming.n / frameInterval.n) * 100.0f, frameTime.f, (float)frameInterval.n));
         GraphIt.PauseGraph(GRAPH_TIME_PERCENT);
         GraphIt.StepGraph(GRAPH_TIME_PERCENT);
 

@@ -10,13 +10,16 @@ public class GraphItWindow : EditorWindow
     static int mMouseOverGraphIndex = -1;
     static float mMouseX = 0;
 
-    public static int SelectTimeLimitIndex = -1;
-    public static string[] _TimeLimitStrOption = new string[] { "none", "100ms", "50ms", "10ms", "5ms", "1ms" };
+    public static string[] _TimeLimitStrOption = new string[] { "normal", "100ms", "50ms", "10ms", "5ms", "1ms" };
     public static int[] _TimeLimitValue = new int[] { -1, 100, 50, 10, 5, 1 };
+    public static int _TimeLimitSelectIndex = -1;
 
+    public static string[] _PercentLimitStrOption = new string[] {"normal","100%","50%","25%"};
+    public static int[] _PercentLimitValue = new int[] {-1,100,50,25};
+    public static int _PercentLimitSelectIndex = -1;
 
-    static float x_offset = 0.0f;
-    static float XStep = 5;
+    static float x_offset = 5.0f;
+    static float XStep = 30;
     public static float y_gap = 15.0f;
     static float y_offset = 0;
     static int precision_slider = 3;
@@ -29,7 +32,7 @@ public class GraphItWindow : EditorWindow
     static Material mLineMaterial;
     static Material mRectMaterial;
 
-    static float mouseXOnLeftBtn = 0;
+    public static float mouseXOnLeftBtn = 0;
     
     static void InitializeStyles()
     {
@@ -73,17 +76,16 @@ public class GraphItWindow : EditorWindow
         }
 
         GL.Color(new Color(0.8f, 0.8f, 0.8f));
-        Plot(mMouseX, 0, mMouseX, height * 2 + y_gap * 2);
+        Plot(mMouseX, 0, mMouseX, height * 2 + y_gap);
 
         GL.End();
 
         if (EditorApplication.isPaused && mouseXOnLeftBtn >0)
         {
             Rect r2 = new Rect();
-            r2.position = new Vector2(mouseXOnLeftBtn,0);
-            r2.y = -20;
-            r2.width = XStep;
-            r2.height = y_pos +height * 2 + y_gap * 2;
+            r2.position = new Vector2(mouseXOnLeftBtn-XStep/2,0);
+            r2.width = XStep+x_offset;
+            r2.height = height * 2 + y_gap;
             Color bg = Color.yellow;
             bg.a = 0.2f;
             Handles.DrawSolidRectangleWithOutline(r2, bg, bg);
@@ -123,8 +125,19 @@ public class GraphItWindow : EditorWindow
         }
     }
 
-    public static float getDataHeightMaxLimit() {
-        return _TimeLimitValue[SelectTimeLimitIndex];
+    public static float getDataHeightMaxLimit(string graphName) {
+        if (graphName.Equals(HanoiData.GRAPH_TIMECONSUMING))
+        {
+            if(_TimeLimitSelectIndex >=0 )
+                return _TimeLimitValue[_TimeLimitSelectIndex];
+        }
+
+        if (graphName.Equals(HanoiData.GRAPH_TIME_PERCENT))
+        {
+            if(_PercentLimitSelectIndex>=0)
+                return _PercentLimitValue[_PercentLimitSelectIndex];
+        }
+        return -1;
     }
 
     public static void DrawGraphs(Rect rect, EditorWindow window)
@@ -156,14 +169,8 @@ public class GraphItWindow : EditorWindow
                     float height = kv.Value.GetHeight();
                     mRectMaterial.SetFloat("_BottomLineHeight", scrolled_y_pos + height);
                     mRectMaterial.SetFloat("_LineHeight", height);
-                    if (SelectTimeLimitIndex > 0)
-                    {
-                        mRectMaterial.SetFloat("_DataHeightMaxLimit", getDataHeightMaxLimit());
-                    }
-                    else
-                    {
-                        mRectMaterial.SetFloat("_DataHeightMaxLimit", -1);
-                    }
+
+                    mRectMaterial.SetFloat("_DataHeightMaxLimit", getDataHeightMaxLimit(kv.Value.mName));
                     mLineMaterial.SetPass(0);
                     DrawGraphGridLines(scrolled_y_pos, mWidth, height, graph_index == mMouseOverGraphIndex);
                     if (kv.Value.GraphLength() > 0)
@@ -174,10 +181,8 @@ public class GraphItWindow : EditorWindow
 
                             float y_min = 0;
                             float y_max = kv.Value.GetMax(entry.Key);
-                            if (SelectTimeLimitIndex > 0)
-                            {
-                                y_max = getDataHeightMaxLimit();
-                            }
+                            if (getDataHeightMaxLimit(kv.Value.mName)>0)
+                                y_max = getDataHeightMaxLimit(kv.Value.mName);
 
                             float y_range = Mathf.Max(y_max - y_min, 0.00001f);
                             GL.Begin(GL.LINES);
@@ -224,20 +229,21 @@ public class GraphItWindow : EditorWindow
                 graph_index++;
 
 
-                mWidth = window.position.width - 2 * x_offset;
+                mWidth = window.position.width - x_offset;
 
                 float height = kv.Value.GetHeight();
                 float width = kv.Value.GraphLength() * XStep;
                 if (width < mWidth)
                 {
-                    width = mWidth;                
+                    width = mWidth - x_offset*2;                
                 }
                 else {
                     if (!EditorApplication.isPaused)
                          mScrollPos.x = width - mWidth;                
                 }
- 
-                Rect r = EditorGUILayout.BeginVertical(); 
+
+                Rect r = EditorGUILayout.BeginVertical();
+                r.height = height;
 
                 //Determine if we can fit all of the text
                 float row_size = 18;
@@ -255,7 +261,6 @@ public class GraphItWindow : EditorWindow
                 }
 
                 string fu_str = " " + (kv.Value.mFixedUpdate ? "(FixedUpdate)" : "");
-
                 //skip subgraph title if only one, and it's the same.
                 if (show_full_text)
                 {
@@ -324,6 +329,7 @@ public class GraphItWindow : EditorWindow
                     {
                         mMouseOverGraphIndex = graph_index;
                         mMouseX = Event.current.mousePosition.x;
+                        float offsetMouseX = mMouseX - x_offset;
                         float hover_y_offset = 0;
                         if (kv.Value.GraphLength() > 0)
                         {
@@ -333,16 +339,22 @@ public class GraphItWindow : EditorWindow
 
                                 for (int i = 0; i < kv.Value.GraphLength(); ++i)
                                 {
-                                    float value = g.mDataInfos[i].GraphNum;
-                                    float frameTime = g.mDataInfos[i].FrameTime;
                                     if (i >= 1)
                                     {
+                                        float value = g.mDataInfos[i - 1].GraphNum;
+                                        float frameTime = g.mDataInfos[i - 1].FrameTime;
                                         float x0 = x_offset + (i - 1) * XStep;
                                         float x1 = x_offset + i * XStep;
-                                        if (x0 < mMouseX && mMouseX <= x1)
+                                        if (x0 < offsetMouseX && offsetMouseX <= x1)
                                         {
+                                            Vector2 position = Event.current.mousePosition + new Vector2(10, -10 + hover_y_offset);
+                                            Vector2 size = new Vector2(110, 15);
+                                            Rect back = new Rect(position,size);
+                                            Color bg = Color.grey;
+                                            Handles.DrawSolidRectangleWithOutline(back, bg, bg);
+
                                             string text = value.ToString(num_format);
-                                            Rect tooltip_r = new Rect(Event.current.mousePosition - new Vector2(250, 2 - hover_y_offset), new Vector2(250, 20));
+                                            Rect tooltip_r = new Rect(position, size);
                                             HoverText.normal.textColor = g.mColor;
                                             GUI.Label(tooltip_r, text + "||" + frameTime, HoverText);
 
@@ -363,8 +375,8 @@ public class GraphItWindow : EditorWindow
                     if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
                     {
                         mMouseOverGraphIndex = graph_index;
-                        mMouseX = Event.current.mousePosition.x;
-
+                        mMouseX = Event.current.mousePosition.x ;
+                        float offsetMouseX = mMouseX - x_offset;
                         if (kv.Value.GraphLength() > 0)
                         {
                             foreach (KeyValuePair<string, GraphItDataInternal> entry in kv.Value.mData)
@@ -373,13 +385,15 @@ public class GraphItWindow : EditorWindow
 
                                 for (int i = 0; i < kv.Value.GraphLength(); ++i)
                                 {
-                                    float value = g.mDataInfos[i].FrameTime;
-                                    float interval = g.mDataInfos[i].FrameInterval;
                                     if (i >= 1)
                                     {
+                                        float value = g.mDataInfos[i-1].FrameTime;
+                                        float interval = g.mDataInfos[i-1].FrameInterval;
+                                    
                                         float x0 = x_offset + (i - 1) * XStep;
                                         float x1 = x_offset + i * XStep;
-                                        if (x0 < mMouseX && mMouseX <= x1)
+
+                                        if (x0 < offsetMouseX && offsetMouseX <= x1)
                                         {
                                             mouseXOnLeftBtn = x0;
                                             VisualizerWindow myWindow = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
@@ -395,7 +409,7 @@ public class GraphItWindow : EditorWindow
                     }
                 }
                 EditorGUILayout.EndVertical();
-                mScrollPos = EditorGUILayout.BeginScrollView(mScrollPos, GUILayout.Width(mWidth), GUILayout.Height(height+y_gap));
+                mScrollPos = EditorGUILayout.BeginScrollView(mScrollPos, GUILayout.Width(mWidth), GUILayout.Height(height + y_gap));
                 GUILayout.Label("", GUILayout.Width(width), GUILayout.Height(0));
                 EditorGUILayout.EndScrollView();
             }
