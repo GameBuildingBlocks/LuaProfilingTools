@@ -11,6 +11,9 @@ public class GraphItWindow : EditorWindow
     static float mMouseX = 0;
 
     public static int SelectTimeLimitIndex = -1;
+    public static string[] _TimeLimitStrOption = new string[] { "none", "100ms", "50ms", "10ms", "5ms", "1ms" };
+    public static int[] _TimeLimitValue = new int[] { -1, 100, 50, 10, 5, 1 };
+
 
     static float x_offset = 0.0f;
     static float XStep = 5;
@@ -96,7 +99,6 @@ public class GraphItWindow : EditorWindow
     static void DrawDataRect(float x0, float y0, float x1, float y1,float yBottom,Color c)
     {
         mRectMaterial.SetPass(0);
-        mRectMaterial.SetFloat("_BottomLineHeight", yBottom);
         GL.Begin(GL.QUADS);
         GL.Color(c);
         GL.Vertex3(x0, y0, 0);
@@ -119,6 +121,10 @@ public class GraphItWindow : EditorWindow
             mRectMaterial.hideFlags = HideFlags.HideAndDontSave;
             mRectMaterial.shader.hideFlags = HideFlags.HideAndDontSave;
         }
+    }
+
+    public static float getDataHeightMaxLimit() {
+        return _TimeLimitValue[SelectTimeLimitIndex];
     }
 
     public static void DrawGraphs(Rect rect, EditorWindow window)
@@ -148,15 +154,16 @@ public class GraphItWindow : EditorWindow
                     graph_index++;
 
                     float height = kv.Value.GetHeight();
+                    mRectMaterial.SetFloat("_BottomLineHeight", scrolled_y_pos + height);
                     mRectMaterial.SetFloat("_LineHeight", height);
                     if (SelectTimeLimitIndex > 0)
                     {
-                        mRectMaterial.SetFloat("_DataHeightMaxLimit",height* (6-SelectTimeLimitIndex) * 0.2f);
+                        mRectMaterial.SetFloat("_DataHeightMaxLimit", getDataHeightMaxLimit());
                     }
-                    else {
-                        mRectMaterial.SetFloat("_DataHeightMaxLimit", 9999);                    
+                    else
+                    {
+                        mRectMaterial.SetFloat("_DataHeightMaxLimit", -1);
                     }
-
                     mLineMaterial.SetPass(0);
                     DrawGraphGridLines(scrolled_y_pos, mWidth, height, graph_index == mMouseOverGraphIndex);
                     if (kv.Value.GraphLength() > 0)
@@ -167,6 +174,11 @@ public class GraphItWindow : EditorWindow
 
                             float y_min = 0;
                             float y_max = kv.Value.GetMax(entry.Key);
+                            if (SelectTimeLimitIndex > 0)
+                            {
+                                y_max = getDataHeightMaxLimit();
+                            }
+
                             float y_range = Mathf.Max(y_max - y_min, 0.00001f);
                             GL.Begin(GL.LINES);
                             //draw the 0 line

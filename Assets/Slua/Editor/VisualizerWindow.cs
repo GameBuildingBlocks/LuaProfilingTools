@@ -203,8 +203,7 @@ using System.Security;
                  _selectedJsonFileIndex = currentSelectedIndex;
                  if (GUILayout.Button("Load",GUILayout.Width(50)))
                     loadSelectedSessions(currentSelectedIndex);
-
-                 GraphItWindow.SelectTimeLimitIndex = EditorGUILayout.Popup(string.Format("TimeLimit"), GraphItWindow.SelectTimeLimitIndex, new string[] { "none", "100", "80", "60", "40", "20" }, GUILayout.Width(180));
+                 GraphItWindow.SelectTimeLimitIndex = EditorGUILayout.Popup(string.Format("TimeLimit"), GraphItWindow.SelectTimeLimitIndex, GraphItWindow._TimeLimitStrOption, GUILayout.Width(180));
              }
              GUILayout.EndHorizontal();
          }
@@ -216,7 +215,7 @@ using System.Security;
                  if (currentSelectedIndex < 0)
                      throw new System.ArgumentException(string.Format("invalid selected index ({0}). ", currentSelectedIndex));
 
-                 if(currentSelectedIndex == _JsonFilesPath.Length-1){
+                 if(currentSelectedIndex == _JsonFilesPath.Length-1){ 
                      reInitHanoiRoot();
                      return;
                  }
