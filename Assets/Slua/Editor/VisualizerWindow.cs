@@ -200,29 +200,46 @@ using System.Security;
                  Handles.color = Color.white;
                  EditorGUIUtility.labelWidth =80;
                  int currentSelectedIndex = EditorGUILayout.Popup(string.Format("Sessions"), _selectedJsonFileIndex, _JsonFilesPath, GUILayout.Width(350));
-                 _selectedJsonFileIndex = currentSelectedIndex;
-                 if (GUILayout.Button("Load",GUILayout.Width(50)))
-                    loadSelectedSessions(currentSelectedIndex);
+                 if (currentSelectedIndex > 0 && _JsonFilesPath[currentSelectedIndex] == HanoiUtil.Realtime)
+                 {
+                     reInitHanoiRoot();
+                     _selectedJsonFileIndex = currentSelectedIndex;
+                 }
+                 else
+                 {
+                     if (GUILayout.Button("Load", GUILayout.Width(50)))
+                     {
+                         if (currentSelectedIndex < 0)
+                             throw new System.ArgumentException(string.Format("invalid selected index ({0}). ", currentSelectedIndex));
+
+                         string file = getSessionsBySelectedIndex(HanoiUtil.GetVaildJsonFolders(), currentSelectedIndex);
+                         loadSession(file);
+                         _selectedJsonFileIndex = currentSelectedIndex;
+                     }
+                 }
+
+                 if (GUILayout.Button("Loadfile"))
+                 {
+                     string path = EditorUtility.OpenFilePanel("Open a lua_perf json", "", "json");
+                     if (path.Length != 0)
+                     {
+                         loadSession(path);
+                     }                     
+                 }
 
                  GraphItWindow.SelectTimeLimitIndex = EditorGUILayout.Popup(string.Format("TimeLimit"), GraphItWindow.SelectTimeLimitIndex, new string[] { "none", "100", "80", "60", "40", "20" }, GUILayout.Width(180));
              }
              GUILayout.EndHorizontal();
          }
 
-         private void loadSelectedSessions(int currentSelectedIndex)
+         private void loadSession(string file)
          {
              try
              {
-                 if (currentSelectedIndex < 0)
-                     throw new System.ArgumentException(string.Format("invalid selected index ({0}). ", currentSelectedIndex));
+                 if (string.IsNullOrEmpty(file))
+                     throw new System.ArgumentException(string.Format("bad path `{0}`. ", file));
 
-                 if(currentSelectedIndex == _JsonFilesPath.Length-1){
-                     reInitHanoiRoot();
-                     return;
-                 }
-
-                 string file = getSessionsBySelectedIndex(HanoiUtil.GetVaildJsonFolders(), currentSelectedIndex);
-                 if (!loadJsonData(file))
+                 if (!m_data.Load(file))
                      throw new System.ArgumentException(string.Format("loading file `{0}` failed. ", file));
 
                  HanoiUtil.TotalTimeConsuming = HanoiUtil.calculateTotalTimeConsuming(m_data.Root.callStats);
@@ -301,17 +318,6 @@ using System.Security;
              Handles.color = Color.yellow;
              Handles.DrawLine(new Vector3(mousePositionInDrawing.x, 0), new Vector3(mousePositionInDrawing.x, m_detailScreenHeight));
              Handles.Label(new Vector3(mousePositionInDrawing.x, globalTimeLabelHight), string.Format("Time: {0:0.000}", mousePositionInDrawing.x));
-         }
-
-         private bool loadJsonData(string jsonFile)
-         {
-             if (string.IsNullOrEmpty(jsonFile)) 
-                 return false;
-             bool succ = m_data.Load(jsonFile);
-             if (!succ) 
-                 return false;
-             
-             return true;
          }
 
          private void drawTimeInterval() {
