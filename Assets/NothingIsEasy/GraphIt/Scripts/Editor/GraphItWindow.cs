@@ -3,7 +3,7 @@ using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
 
-public class GraphItWindow : EditorWindow
+public class GraphItWindow2 : EditorWindow
 {
     static Vector2 mScrollPos;
     static float mWidth;
@@ -142,7 +142,7 @@ public class GraphItWindow : EditorWindow
 
     public static void DrawGraphs(Rect rect, EditorWindow window)
     {
-        if (GraphIt.Instance)
+        if (GraphIt2.Instance)
         {
             InitializeStyles();
             CreateLineMaterial();
@@ -158,7 +158,7 @@ public class GraphItWindow : EditorWindow
                 //Draw Lines
                 float scrolled_y_pos = y_offset - mScrollPos.y;
                 float scrolled_x_pos = x_offset - mScrollPos.x;
-                foreach (KeyValuePair<string, GraphItData> kv in GraphIt.Instance.Graphs)
+                foreach (KeyValuePair<string, GraphItData2> kv in GraphIt2.Instance.Graphs)
                 {
                     if (kv.Value.GetHidden())
                     {
@@ -175,9 +175,9 @@ public class GraphItWindow : EditorWindow
                     DrawGraphGridLines(scrolled_y_pos, mWidth, height, graph_index == mMouseOverGraphIndex);
                     if (kv.Value.GraphLength() > 0)
                     {
-                        foreach (KeyValuePair<string, GraphItDataInternal> entry in kv.Value.mData)
+                        foreach (KeyValuePair<string, GraphItDataInternal2> entry in kv.Value.mData)
                         {
-                            GraphItDataInternal g = entry.Value;
+                            GraphItDataInternal2 g = entry.Value;
 
                             float y_min = 0;
                             float y_max = kv.Value.GetMax(entry.Key);
@@ -220,7 +220,7 @@ public class GraphItWindow : EditorWindow
             {
                 mMouseOverGraphIndex = -1; //clear it out every repaint to ensure when the mouse leaves we don't leave the pointer around
             }
-            foreach (KeyValuePair<string, GraphItData> kv in GraphIt.Instance.Graphs)
+            foreach (KeyValuePair<string, GraphItData2> kv in GraphIt2.Instance.Graphs)
             {
                 if (kv.Value.GetHidden())
                 {
@@ -268,12 +268,12 @@ public class GraphItWindow : EditorWindow
                     EditorGUILayout.LabelField(kv.Key + fu_str, NameLabel);
                 }
 
-                foreach (KeyValuePair<string, GraphItDataInternal> entry in kv.Value.mData)
+                foreach (KeyValuePair<string, GraphItDataInternal2> entry in kv.Value.mData)
                 {
-                    GraphItDataInternal g = entry.Value;
+                    GraphItDataInternal2 g = entry.Value;
                     if (show_full_text)
                     {
-                        if (kv.Value.mData.Count > 1 || entry.Key != GraphIt.BASE_GRAPH)
+                        if (kv.Value.mData.Count > 1 || entry.Key != GraphIt2.BASE_GRAPH)
                         {
                             NameLabel.normal.textColor = g.mColor;
                             EditorGUILayout.LabelField(entry.Key, NameLabel);
@@ -297,7 +297,7 @@ public class GraphItWindow : EditorWindow
                                 NameLabel.normal.textColor = Color.white;
                             }
                             string text = entry.Key;
-                            if (text == GraphIt.BASE_GRAPH)
+                            if (text == GraphIt2.BASE_GRAPH)
                             {
                                 text = kv.Key;
                             }
@@ -333,9 +333,9 @@ public class GraphItWindow : EditorWindow
                         float hover_y_offset = 0;
                         if (kv.Value.GraphLength() > 0)
                         {
-                            foreach (KeyValuePair<string, GraphItDataInternal> entry in kv.Value.mData)
+                            foreach (KeyValuePair<string, GraphItDataInternal2> entry in kv.Value.mData)
                             {
-                                GraphItDataInternal g = entry.Value;
+                                GraphItDataInternal2 g = entry.Value;
 
                                 for (int i = 0; i < kv.Value.GraphLength(); ++i)
                                 {
@@ -379,9 +379,9 @@ public class GraphItWindow : EditorWindow
                         float offsetMouseX = mMouseX - x_offset;
                         if (kv.Value.GraphLength() > 0)
                         {
-                            foreach (KeyValuePair<string, GraphItDataInternal> entry in kv.Value.mData)
+                            foreach (KeyValuePair<string, GraphItDataInternal2> entry in kv.Value.mData)
                             {
-                                GraphItDataInternal g = entry.Value;
+                                GraphItDataInternal2 g = entry.Value;
 
                                 for (int i = 0; i < kv.Value.GraphLength(); ++i)
                                 {

@@ -115,7 +115,7 @@ using System.Security;
          }
 
          void OnDestroy() {
-             if (!Lua.Instance.IsRegisterLuaProfilerCallback())
+             if (Lua.Instance.IsRegisterLuaProfilerCallback())
                  Lua.Instance.UnRegisterLuaProfilerCallback();
          }
 
@@ -141,7 +141,7 @@ using System.Security;
              GUILayout.BeginArea(new Rect(0, m_navigationScreenPosY, m_winWidth, m_navigationScreenHeight));
              {
                  if (m_data.isHanoiDataHasContent())
-                     GraphItWindow.DrawGraphs(position, this);
+                     GraphItWindow2.DrawGraphs(position, this);
              }
              GUILayout.EndArea();
 
@@ -171,11 +171,11 @@ using System.Security;
          }
 
          private void reInitHanoiRoot() {
-             GraphIt.Clear();
+             GraphIt2.Clear();
              m_data.m_hanoiData = new HanoiRoot();
              m_data.Root.callStats = new HanoiNode(null);
              _selectedJsonFileIndex = _JsonFilesPath.Length - 1;
-             GraphItWindow.mouseXOnLeftBtn = -1;
+             GraphItWindow2.mouseXOnLeftBtn = -1;
          }
 
          private void handleCommandEvent()
@@ -192,6 +192,8 @@ using System.Security;
              if (Event.current.commandName.Equals("AppStoped"))
              {
                  refreshCheckJasonFilesUpadate();
+                 if (Lua.Instance.IsRegisterLuaProfilerCallback())
+                     Lua.Instance.UnRegisterLuaProfilerCallback();
              }
          }
          private void drawGUIElement()
@@ -207,8 +209,8 @@ using System.Security;
                  if (GUILayout.Button("Load",GUILayout.Width(50)))
                     loadSelectedSessions(currentSelectedIndex);
 
-                 GraphItWindow._TimeLimitSelectIndex = GUI.SelectionGrid(new Rect(500, 0, 350, 20), GraphItWindow._TimeLimitSelectIndex, GraphItWindow._TimeLimitStrOption, GraphItWindow._TimeLimitStrOption.Length);
-                 GraphItWindow._PercentLimitSelectIndex = GUI.SelectionGrid(new Rect(950, 0,300, 20), GraphItWindow._PercentLimitSelectIndex, GraphItWindow._PercentLimitStrOption, GraphItWindow._PercentLimitStrOption.Length);
+                 GraphItWindow2._TimeLimitSelectIndex = GUI.SelectionGrid(new Rect(500, 0, 350, 20), GraphItWindow2._TimeLimitSelectIndex, GraphItWindow2._TimeLimitStrOption, GraphItWindow2._TimeLimitStrOption.Length);
+                 GraphItWindow2._PercentLimitSelectIndex = GUI.SelectionGrid(new Rect(950, 0,300, 20), GraphItWindow2._PercentLimitSelectIndex, GraphItWindow2._PercentLimitStrOption, GraphItWindow2._PercentLimitStrOption.Length);
              }
              GUILayout.EndHorizontal();
          }
@@ -384,10 +386,10 @@ using System.Security;
              m_controlScreenHeight = m_winHeight - m_detailScreenHeight - m_navigationScreenHeight;
              m_controlScreenPosY = 0.0f;
 
-             GraphIt.GraphSetupHeight(HanoiData.GRAPH_TIMECONSUMING, m_navigationScreenHeight / 2 - GraphItWindow.y_gap);
-             GraphIt.GraphSetupHeight(HanoiData.GRAPH_TIME_PERCENT, m_navigationScreenHeight / 2 - GraphItWindow.y_gap);
-             GraphIt.ShareYAxis(HanoiData.GRAPH_TIMECONSUMING,true);
-             GraphIt.ShareYAxis(HanoiData.GRAPH_TIME_PERCENT,true);
+             GraphIt2.GraphSetupHeight(HanoiData.GRAPH_TIMECONSUMING, m_navigationScreenHeight / 2 - GraphItWindow2.y_gap);
+             GraphIt2.GraphSetupHeight(HanoiData.GRAPH_TIME_PERCENT, m_navigationScreenHeight / 2 - GraphItWindow2.y_gap);
+             GraphIt2.ShareYAxis(HanoiData.GRAPH_TIMECONSUMING,true);
+             GraphIt2.ShareYAxis(HanoiData.GRAPH_TIME_PERCENT,true);
          }
 
          private void calculateStackHeight() {
@@ -460,7 +462,7 @@ using System.Security;
                      m_isTestCallLua = !m_isTestCallLua;
                      EditorApplication.isPaused = false;
                      break;
-                 case EventType.MouseMove:
+                 case EventType.mouseMove:
                      {
                          if (m_picked != null)
                          {

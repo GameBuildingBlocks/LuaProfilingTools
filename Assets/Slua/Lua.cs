@@ -45,26 +45,7 @@ public class Lua
             Directory.CreateDirectory(m_strPath);
         }
     }
-    public bool IsRegisterLuaProfilerCallback()
-    {
-        return LuaDLL.isregister_callback();
-    }
-
-    public void RegisterLuaProfilerCallback(LuaProfilerCallback callback)
-    {
-        LuaDLL.register_callback(callback);
-    }
-
-    public void RegisterLuaProfilerCallback2(string obj,string method)
-    {
-        LuaDLL.register_callback2(obj, method);
-    }
-
-    public void UnRegisterLuaProfilerCallback()
-    {
-        LuaDLL.unregister_callback();
-    }
-
+    
     public void StartLuaProfiler()
     {
         string file = m_strPath + "/" + m_strTime + ".json";
@@ -93,6 +74,27 @@ public class Lua
         }
 #endif
     }
+
+public bool IsRegisterLuaProfilerCallback()
+    {
+        return LuaDLL.isregister_callback();
+    }
+
+    public void RegisterLuaProfilerCallback(LuaProfilerCallback callback)
+    {
+        LuaDLL.register_callback(callback);
+    }
+
+    public void RegisterLuaProfilerCallback2(string obj,string method)
+    {
+        LuaDLL.register_callback2(obj, method);
+    }
+
+    public void UnRegisterLuaProfilerCallback()
+    {
+        LuaDLL.unregister_callback();
+    }
+
 
     public void SetFrameInfo()
     {

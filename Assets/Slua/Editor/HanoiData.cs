@@ -112,7 +112,7 @@ public class HanoiData
     public bool Load(string filename)
     {
         m_hanoiData = null;
-        GraphIt.Clear();
+        GraphIt2.Clear();
         try
         {
             string text = System.IO.File.ReadAllText(filename);
@@ -206,15 +206,15 @@ public class HanoiData
             return;
         }
 
-        GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_INCLUSIVE, new DataInfo((float)funConsuming.n, frameTime.f, (float)frameInterval.n));
-        GraphIt.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE, new DataInfo((float)luaConsuming.n, frameTime.f, (float)frameInterval.n));
-        GraphIt.PauseGraph(GRAPH_TIMECONSUMING);
-        GraphIt.StepGraph(GRAPH_TIMECONSUMING);
+        GraphIt2.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_INCLUSIVE, new DataInfo((float)funConsuming.n, frameTime.f, (float)frameInterval.n));
+        GraphIt2.LogFixed(GRAPH_TIMECONSUMING, SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE, new DataInfo((float)luaConsuming.n, frameTime.f, (float)frameInterval.n));
+        GraphIt2.PauseGraph(GRAPH_TIMECONSUMING);
+        GraphIt2.StepGraph(GRAPH_TIMECONSUMING);
 
-        GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_INCLUSIVE, new DataInfo((float)(funConsuming.n / frameInterval.n * 100.0f), frameTime.f, (float)frameInterval.n));
-        GraphIt.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_EXCLUSIVE, new DataInfo((float)(luaConsuming.n / frameInterval.n) * 100.0f, frameTime.f, (float)frameInterval.n));
-        GraphIt.PauseGraph(GRAPH_TIME_PERCENT);
-        GraphIt.StepGraph(GRAPH_TIME_PERCENT);
+        GraphIt2.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_INCLUSIVE, new DataInfo((float)(funConsuming.n / frameInterval.n * 100.0f), frameTime.f, (float)frameInterval.n));
+        GraphIt2.LogFixed(GRAPH_TIME_PERCENT, SUBGRAPH_LUA_PERCENT_EXCLUSIVE, new DataInfo((float)(luaConsuming.n / frameInterval.n) * 100.0f, frameTime.f, (float)frameInterval.n));
+        GraphIt2.PauseGraph(GRAPH_TIME_PERCENT);
+        GraphIt2.StepGraph(GRAPH_TIME_PERCENT);
 
     }
 

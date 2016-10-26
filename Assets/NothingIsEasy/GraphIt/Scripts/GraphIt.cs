@@ -54,9 +54,9 @@ public class  DataInfo{
     }
 }
 
-public class GraphItDataInternal
+public class GraphItDataInternal2
 {
-    public GraphItDataInternal( int subgraph_index )
+    public GraphItDataInternal2( int subgraph_index )
     {
         mDataInfos = new List<DataInfo>();
         mCounter = null;
@@ -94,12 +94,12 @@ public class GraphItDataInternal
     public Color mColor;
 }
 
-public class GraphItData
+public class GraphItData2
 {
     public const int DEFAULT_SAMPLES = 2048;
     public const int RECENT_WINDOW_SIZE = 120;
     
-    public Dictionary<string, GraphItDataInternal> mData = new Dictionary<string, GraphItDataInternal>();
+    public Dictionary<string, GraphItDataInternal2> mData = new Dictionary<string, GraphItDataInternal2>();
 
     public string mName;
 
@@ -117,11 +117,11 @@ public class GraphItData
     protected float mHeight;
 
 
-    public GraphItData( string name)
+    public GraphItData2( string name)
     {
         mName = name;
 
-        mData = new Dictionary<string, GraphItDataInternal>();
+        mData = new Dictionary<string, GraphItDataInternal2>();
 
         mCurrentIndex = 0;
         mInclude0 = true;
@@ -157,9 +157,9 @@ public class GraphItData
         {
             bool min_set = false;
             float min = 0;
-            foreach (KeyValuePair<string, GraphItDataInternal> entry in mData)
+            foreach (KeyValuePair<string, GraphItDataInternal2> entry in mData)
             {
-                GraphItDataInternal g = entry.Value;
+                GraphItDataInternal2 g = entry.Value;
                 if (!min_set)
                 {
                     min = g.mMin;
@@ -173,7 +173,7 @@ public class GraphItData
         {
             if (!mData.ContainsKey(subgraph))
             {
-                mData[subgraph] = new GraphItDataInternal(mData.Count);
+                mData[subgraph] = new GraphItDataInternal2(mData.Count);
             }
             return mData[subgraph].mMin;
         }
@@ -185,9 +185,9 @@ public class GraphItData
         {
             bool max_set = false;
             float max = 0;
-            foreach (KeyValuePair<string, GraphItDataInternal> entry in mData)
+            foreach (KeyValuePair<string, GraphItDataInternal2> entry in mData)
             {
-                GraphItDataInternal g = entry.Value;
+                GraphItDataInternal2 g = entry.Value;
                 if (!max_set)
                 {
                     max = g.mMax;
@@ -201,7 +201,7 @@ public class GraphItData
         {
             if (!mData.ContainsKey(subgraph))
             {
-                mData[subgraph] = new GraphItDataInternal(mData.Count);
+                mData[subgraph] = new GraphItDataInternal2(mData.Count);
             }
             return mData[subgraph].mMax;
         }
@@ -233,17 +233,17 @@ public class GraphItData
 
 }
 
-public class GraphIt : MonoBehaviour
+public class GraphIt2 : MonoBehaviour
 {
 
 #if UNITY_EDITOR
     public const string BASE_GRAPH = "base";
     public const string VERSION = "1.2.0";
-    public Dictionary<string, GraphItData> Graphs = new Dictionary<string, GraphItData>();
-    static GraphIt mInstance = null;
+    public Dictionary<string, GraphItData2> Graphs = new Dictionary<string, GraphItData2>();
+    static GraphIt2 mInstance = null;
 #endif
 
-    public static GraphIt Instance
+    public static GraphIt2 Instance
     {
         get
         {
@@ -252,7 +252,7 @@ public class GraphIt : MonoBehaviour
             {
                 GameObject go = new GameObject("GraphIt");
                 go.hideFlags = HideFlags.HideAndDontSave;
-                mInstance = go.AddComponent<GraphIt>();
+                mInstance = go.AddComponent<GraphIt2>();
             }
             return mInstance;
 #else
@@ -265,32 +265,32 @@ public class GraphIt : MonoBehaviour
     {
         if (!mInstance) 
             return;
-        foreach (KeyValuePair<string, GraphItData> kv in mInstance.Graphs)
+        foreach (KeyValuePair<string, GraphItData2> kv in mInstance.Graphs)
         {
-            GraphItData g = kv.Value;
+            GraphItData2 g = kv.Value;
             g.mCurrentIndex = 0;
-            foreach (KeyValuePair<string, GraphItDataInternal> entry in g.mData)
+            foreach (KeyValuePair<string, GraphItDataInternal2> entry in g.mData)
             {
-                GraphItDataInternal gdi = entry.Value;
+                GraphItDataInternal2 gdi = entry.Value;
                 gdi.mDataInfos.Clear();
             }
         }
     }
 
-    void StepGraphInternal(GraphItData graph)
+    void StepGraphInternal(GraphItData2 graph)
     {
 #if UNITY_EDITOR
-        foreach (KeyValuePair<string, GraphItDataInternal> entry in graph.mData)
+        foreach (KeyValuePair<string, GraphItDataInternal2> entry in graph.mData)
         {
-            GraphItDataInternal g = entry.Value;
+            GraphItDataInternal2 g = entry.Value;
             g.mDataInfos.Add(g.mCounter);
         }
 
         graph.mCurrentIndex = graph.mCurrentIndex + 1 ;
 
-        foreach (KeyValuePair<string, GraphItDataInternal> entry in graph.mData)
+        foreach (KeyValuePair<string, GraphItDataInternal2> entry in graph.mData)
         {
-            GraphItDataInternal g = entry.Value;
+            GraphItDataInternal2 g = entry.Value;
 
             float sum = g.mDataInfos[0].GraphNum;
             float min = g.mDataInfos[0].GraphNum;
@@ -308,8 +308,8 @@ public class GraphIt : MonoBehaviour
             }
 
             //Calculate the recent average
-            int recent_start = graph.mCurrentIndex - GraphItData.RECENT_WINDOW_SIZE;
-            int recent_count = GraphItData.RECENT_WINDOW_SIZE;
+            int recent_start = graph.mCurrentIndex - GraphItData2.RECENT_WINDOW_SIZE;
+            int recent_count = GraphItData2.RECENT_WINDOW_SIZE;
             if (recent_start < 0)
             {
                 recent_count = graph.GraphLength();
@@ -335,9 +335,9 @@ public class GraphIt : MonoBehaviour
     void LateUpdate()
     {
 #if UNITY_EDITOR
-        foreach (KeyValuePair<string, GraphItData> kv in Graphs)
+        foreach (KeyValuePair<string, GraphItData2> kv in Graphs)
         {
-            GraphItData g = kv.Value;
+            GraphItData2 g = kv.Value;
             if (g.mReadyForUpdate && !g.mFixedUpdate)
             {
                 StepGraphInternal(g);
@@ -350,9 +350,9 @@ public class GraphIt : MonoBehaviour
     void FixedUpdate()
     {
 #if UNITY_EDITOR
-        foreach (KeyValuePair<string, GraphItData> kv in Graphs)
+        foreach (KeyValuePair<string, GraphItData2> kv in Graphs)
         {
-            GraphItData g = kv.Value;
+            GraphItData2 g = kv.Value;
             if (g.mReadyForUpdate && g.mFixedUpdate )
             {
                 StepGraphInternal(g);
@@ -386,10 +386,10 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
 
-        GraphItData g = Instance.Graphs[graph];
+        GraphItData2 g = Instance.Graphs[graph];
         g.mInclude0 = include_0;
 #endif
     }
@@ -405,10 +405,10 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
 
-        GraphItData g = Instance.Graphs[graph];
+        GraphItData2 g = Instance.Graphs[graph];
         g.SetHeight(height);
 #endif
     }
@@ -424,10 +424,10 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
 
-        GraphItData g = Instance.Graphs[graph];
+        GraphItData2 g = Instance.Graphs[graph];
         g.SetHidden(hidden);
 #endif
     }
@@ -443,15 +443,15 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
 
-        GraphItData g = Instance.Graphs[graph];
-        int samples = Math.Max(sample_window, GraphItData.RECENT_WINDOW_SIZE + 1);
+        GraphItData2 g = Instance.Graphs[graph];
+        int samples = Math.Max(sample_window, GraphItData2.RECENT_WINDOW_SIZE + 1);
         g.mWindowSize = samples;
-        foreach (KeyValuePair<string, GraphItDataInternal> entry in g.mData)
+        foreach (KeyValuePair<string, GraphItDataInternal2> entry in g.mData)
         {
-            GraphItDataInternal _g = entry.Value;
+            GraphItDataInternal2 _g = entry.Value;
             //_g.mDataPoints = new float[samples];
         }
 #endif
@@ -480,13 +480,13 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
 
-        GraphItData g = Instance.Graphs[graph];
+        GraphItData2 g = Instance.Graphs[graph];
         if (!g.mData.ContainsKey(subgraph))
         {
-            g.mData[subgraph] = new GraphItDataInternal(g.mData.Count);
+            g.mData[subgraph] = new GraphItDataInternal2(g.mData.Count);
         }
         g.mData[subgraph].mColor = color;
 #endif
@@ -515,13 +515,13 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
 
-        GraphItData g = Instance.Graphs[graph];
+        GraphItData2 g = Instance.Graphs[graph];
         if (!g.mData.ContainsKey(subgraph))
         {
-            g.mData[subgraph] = new GraphItDataInternal(g.mData.Count);
+            g.mData[subgraph] = new GraphItDataInternal2(g.mData.Count);
         }
         g.mData[subgraph].mCounter =di;
 
@@ -566,7 +566,7 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
         Instance.StepGraphInternal(Instance.Graphs[graph]);
 #endif
@@ -581,10 +581,10 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
 
-        GraphItData g = Instance.Graphs[graph];
+        GraphItData2 g = Instance.Graphs[graph];
         g.mReadyForUpdate = false;
 #endif
     }
@@ -598,10 +598,10 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
 
-        GraphItData g = Instance.Graphs[graph];
+        GraphItData2 g = Instance.Graphs[graph];
         g.mReadyForUpdate = true;
 #endif
     }
@@ -616,10 +616,10 @@ public class GraphIt : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData(graph);
+            Instance.Graphs[graph] = new GraphItData2(graph);
         }
 
-        GraphItData g = Instance.Graphs[graph];
+        GraphItData2 g = Instance.Graphs[graph];
         g.mSharedYAxis = shared_y_axis;
 #endif
     }
