@@ -12,14 +12,14 @@ public class GraphItWindow2 : EditorWindow
 
     public static string[] _TimeLimitStrOption = new string[] { "normal", "100ms", "50ms", "10ms", "5ms", "1ms" };
     public static int[] _TimeLimitValue = new int[] { -1, 100, 50, 10, 5, 1 };
-    public static int _TimeLimitSelectIndex = -1;
+    public static int _TimeLimitSelectIndex = 0;
 
-    public static string[] _PercentLimitStrOption = new string[] {"normal","100%","50%","25%"};
-    public static int[] _PercentLimitValue = new int[] {-1,100,50,25};
-    public static int _PercentLimitSelectIndex = -1;
+    public static string[] _PercentLimitStrOption = new string[] {"100%","20%","5%"};
+    public static int[] _PercentLimitValue = new int[] {100,20,5};
+    public static int _PercentLimitSelectIndex = 0;
 
     static float x_offset = 5.0f;
-    static float XStep = 30;
+    static float XStep = 3;
     public static float y_gap = 15.0f;
     static float y_offset = 0;
     static int precision_slider = 3;
@@ -152,12 +152,11 @@ public class GraphItWindow2 : EditorWindow
             //use this to get the starting y position for the GL rendering
             Rect find_y = EditorGUILayout.BeginVertical(GUIStyle.none);
             EditorGUILayout.EndVertical();
-
+                            float scrolled_y_pos = y_offset - mScrollPos.y;
+                float scrolled_x_pos = x_offset - mScrollPos.x;
             if (Event.current.type == EventType.Repaint)
             {
                 //Draw Lines
-                float scrolled_y_pos = y_offset - mScrollPos.y;
-                float scrolled_x_pos = x_offset - mScrollPos.x;
                 foreach (KeyValuePair<string, GraphItData2> kv in GraphIt2.Instance.Graphs)
                 {
                     if (kv.Value.GetHidden())
@@ -197,10 +196,13 @@ public class GraphItWindow2 : EditorWindow
                             float previous_value = 0;
                             for (int i = 0; i < kv.Value.GraphLength(); ++i)
                             {
-                                float value = g.mDataInfos[i].GraphNum;
+                                float value = 0;
                                 if (i >= 1)
                                 {
                                     float x0 = x_offset + (i - 1) * XStep + scrolled_x_pos;
+                                    if (x0 <= -XStep*2) continue;
+                                    if (x0 >= mWidth + XStep*2) break;
+                                    value = g.mDataInfos[i].GraphNum;
                                     float y0 = scrolled_y_pos + height * (1 - (previous_value - y_min) / y_range);
 
                                     float x1 = x_offset + i * XStep + scrolled_x_pos;
@@ -317,11 +319,16 @@ public class GraphItWindow2 : EditorWindow
                 //Respond to mouse input!
                 if (Event.current.type == EventType.MouseDrag && r.Contains(Event.current.mousePosition - Event.current.delta))
                 {
-                    if (Event.current.type == EventType.MouseDrag && Event.current.button == 1)
+                    if (Event.current.type == EventType.MouseDrag )
                     {
-                        mScrollPos.x += Event.current.delta.x;
-                        mouseXOnLeftBtn = -1;
+                        if (Event.current.button == 1)
+                        {
+                            mScrollPos.x += Event.current.delta.x;
+                            mouseXOnLeftBtn = -1;
+                        }
+                        window.Repaint();
                     }
+
                 }
                 else if (Event.current.type != EventType.Layout && r.Contains(Event.current.mousePosition))
                 {
@@ -329,7 +336,7 @@ public class GraphItWindow2 : EditorWindow
                     {
                         mMouseOverGraphIndex = graph_index;
                         mMouseX = Event.current.mousePosition.x;
-                        float offsetMouseX = mMouseX - x_offset;
+                        float offsetMouseX = mMouseX - x_offset + XStep;
                         float hover_y_offset = 0;
                         if (kv.Value.GraphLength() > 0)
                         {
@@ -343,8 +350,8 @@ public class GraphItWindow2 : EditorWindow
                                     {
                                         float value = g.mDataInfos[i - 1].GraphNum;
                                         float frameTime = g.mDataInfos[i - 1].FrameTime;
-                                        float x0 = x_offset + (i - 1) * XStep;
-                                        float x1 = x_offset + i * XStep;
+                                        float x0 = x_offset + (i - 1) * XStep + scrolled_x_pos;
+                                        float x1 = x_offset + i * XStep + scrolled_x_pos;
                                         if (x0 < offsetMouseX && offsetMouseX <= x1)
                                         {
                                             Vector2 position = Event.current.mousePosition + new Vector2(10, -10 + hover_y_offset);
@@ -389,9 +396,9 @@ public class GraphItWindow2 : EditorWindow
                                     {
                                         float value = g.mDataInfos[i-1].FrameTime;
                                         float interval = g.mDataInfos[i-1].FrameInterval;
-                                    
-                                        float x0 = x_offset + (i - 1) * XStep;
-                                        float x1 = x_offset + i * XStep;
+
+                                        float x0 = x_offset + (i - 1) * XStep + scrolled_x_pos;
+                                        float x1 = x_offset + i * XStep + scrolled_x_pos;
 
                                         if (x0 < offsetMouseX && offsetMouseX <= x1)
                                         {
@@ -409,7 +416,12 @@ public class GraphItWindow2 : EditorWindow
                     }
                 }
                 EditorGUILayout.EndVertical();
+                float preScrollPosX = mScrollPos.x;
                 mScrollPos = EditorGUILayout.BeginScrollView(mScrollPos, GUILayout.Width(mWidth), GUILayout.Height(height + y_gap));
+                if (preScrollPosX != mScrollPos.x)
+                {
+                    mouseXOnLeftBtn = -1;
+                }
                 GUILayout.Label("", GUILayout.Width(width), GUILayout.Height(0));
                 EditorGUILayout.EndScrollView();
             }

@@ -42,7 +42,6 @@
 					v.vertex.y =_BottomLineHeight-_LineHeight;
                     v.color = float4(1,0,0,1);
                 }
-
                 o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
                 o.color = v.color * _Color;
 				return o;

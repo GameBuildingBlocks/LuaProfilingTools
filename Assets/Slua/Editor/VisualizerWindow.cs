@@ -39,6 +39,7 @@ using System.Security;
          public static float m_detailScreenHeight = 0.0f;
          public static float m_detailScreenPosY = 0.0f;
 
+
          HanoiData m_data = new HanoiData();
          HanoiNode m_picked;
 
@@ -47,50 +48,46 @@ using System.Security;
          int _selectedJsonFileIndex = -1;
          string[] _JsonFilesPath = new string[] { };
 
-         [MenuItem("Window/"+Lua.g_editorWindow)]
+         [MenuItem("Window/"+UIDef.g_editorWindow)]
          static void Create()
          {
              //// Get existing open window or if none, make a new one:
-             VisualizerWindow m_window = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
-             m_window.Show();
-             m_window.wantsMouseMove = true;
-             m_window.CheckForResizing();
+                VisualizerWindow m_window = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
+                 m_window.Show();
+                 m_window.wantsMouseMove = true;
+                 m_window.CheckForResizing();
          }
 
          void Update()
          {
-             if (m_isTestCallLua && Lua.Instance != null && Lua.Instance.m_LuaSvr != null)
-                 Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
              doTranslationAnimation();
+             if ((Lua.Instance != null) && Lua.Instance.IsRegisterLuaProfilerCallback())
+                 Lua.Instance.SetFrameInfo();
          }
 
          private void doTranslationAnimation()
          {
              float delta = targetTranslationX - m_Translation.x;
-             if (Mathf.Abs(delta) >= targetTranslationInterval)
+             if (Mathf.Abs(delta) > targetTranslationInterval)
              {
                  if (delta > 0)
                  {
                      m_Translation.x += targetTranslationInterval;
-                 }
-                 else
+                     Repaint();
+                 }else
                  {
                      m_Translation.x -= targetTranslationInterval;
+                     Repaint();
                  }
-                 Repaint();
              }
              else
              {
                  m_Translation.x = targetTranslationX;
-                 Repaint();
              }
          }
-             
 
          public void onSessionMessage(string strInfo)
          {
-             Debug.Log(strInfo);
-             
              if (string.IsNullOrEmpty(strInfo))
                  return;
 
@@ -102,7 +99,7 @@ using System.Security;
              if (jsonContent.type != JSONObject.Type.OBJECT)
                  return;
 
-             VisualizerWindow myWindow = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
+             VisualizerWindow myWindow = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow), true, "", false);
              myWindow.handleSessionMessage(jsonContent);
              myWindow.Repaint();
          }
@@ -473,8 +470,9 @@ using System.Security;
                          HanoiNode picked = PickHanoiRecursively(m_data.Root.callStats, mousePositionInDetailScreen);
                          if (picked != null)
                          {
-                             HanoiUtil.ForeachInParentChain(picked, (n) => { 
-                                 n.highlighted = true; 
+                             HanoiUtil.ForeachInParentChain(picked, (n) =>
+                             {
+                                 n.highlighted = true;
                              });
                              m_picked = picked;
 
@@ -482,7 +480,7 @@ using System.Security;
                          }
                          else
                          {
-                            // Debug.LogFormat("Picked nothing.");
+                             // Debug.LogFormat("Picked nothing.");
                          }
 
                          if (EditorWindow.focusedWindow == this)
@@ -493,7 +491,8 @@ using System.Security;
                                  m_mouseArea = MouseInArea.DetailScreen;
                                  Repaint();
                              }
-                             else {
+                             else
+                             {
                                  m_mouseArea = MouseInArea.none;
                              }
                          }

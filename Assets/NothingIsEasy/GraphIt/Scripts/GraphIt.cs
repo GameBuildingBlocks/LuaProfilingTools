@@ -552,7 +552,7 @@ public class GraphIt2 : MonoBehaviour
     {
 #if UNITY_EDITOR
         Log(graph, subgraph, di);
-        Instance.Graphs[graph].mFixedUpdate = true;
+        //Instance.Graphs[graph].mFixedUpdate = true;
 #endif
     }
 
