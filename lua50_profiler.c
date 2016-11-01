@@ -8,6 +8,7 @@
 lua50_profiler.c:
    Lua version dependent profiler interface
 *****************************************************************************/
+#define LUA_CORE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +27,7 @@ lua50_profiler.c:
 /* Indices for the main profiler stack and for the original exit function */
 static int exit_id;
 static int profstate_id;
+static int is_pause;
 //static int profresult_id;
 
 /* Forward declaration */
@@ -111,6 +113,7 @@ static int profiler_pause(lua_State *L) {
   lua_gettable(L, LUA_REGISTRYINDEX);
   S = (lprofP_STATE*)lua_touserdata(L, -1);
   lprofM_pause_function(S);
+  is_pause = 1;
   return 0;
 }
 
@@ -120,6 +123,7 @@ static int profiler_resume(lua_State *L) {
   lua_gettable(L, LUA_REGISTRYINDEX);
   S = (lprofP_STATE*)lua_touserdata(L, -1);
   lprofM_pause_function(S);
+  is_pause = 0;
   return 0;
 }
 
@@ -127,7 +131,7 @@ static int profiler_init(lua_State *L) {
   lprofP_STATE* S;
   const char* outfile;
   float function_call_time;
-  lprofT_start();
+  //lprofT_start();
   lua_pushlightuserdata(L, &profstate_id);
   lua_gettable(L, LUA_REGISTRYINDEX);
   if(!lua_isnil(L, -1)) {
@@ -235,6 +239,12 @@ static float calcCallTime(lua_State *L) {
   return lprofC_get_seconds(timer) / (float) 100000;
 }
 
+static int is_profiler_pause(lua_State *L)
+{
+	lua_pushboolean(L, is_pause);
+	return 1;
+}
+
 static const luaL_Reg prof_funcs[] = {
   { "profiler_pause", profiler_pause },
   { "profiler_resume", profiler_resume },
@@ -264,13 +274,14 @@ int luaopen_profiler(lua_State *L) {
 
 int profiler_open(lua_State *L)
 {
+	is_pause = 0;
+
 	lua_register(L, "profiler_start", profiler_init);
 	lua_register(L, "profiler_pause", profiler_pause);
 	lua_register(L, "profiler_resume", profiler_resume);
 	lua_register(L, "profiler_stop", profiler_stop);
-	//lua_register(L, "profiler_frame", profiler_frame);
-	//lua_register(L, "profiler_callback", profiler_callback);
-	
+	lua_register(L, "is_profiler_pause", is_profiler_pause);
+
 	return 1;
 }
 
@@ -281,7 +292,7 @@ DLL_API void init_profiler(lua_State *L)
 	pOutputCallback = NULL;
 	pUnityObject = NULL;
 	pUnityMethod = NULL;
-	//lprofT_init();
+	lprofT_init();
 }
 
 DLL_API void frame_profiler(int id,int unitytime)

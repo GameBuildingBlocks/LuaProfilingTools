@@ -630,9 +630,10 @@ void lprofT_frame(int id, int unitytime)
 void lprofT_init()
 {
 	//lprofC_start_timer2(&time_maker_golbal_init);
+	lprofC_start_timer2(&time_maker_golbal_start);
 }
 
 void lprofT_start()
 {
-	lprofC_start_timer2(&time_maker_golbal_start);
+	//lprofC_start_timer2(&time_maker_golbal_start);
 }
