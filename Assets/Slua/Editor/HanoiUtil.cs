@@ -7,6 +7,8 @@ public delegate void HanoiNodeAction(HanoiNode n);
 
 public class HanoiUtil 
 {
+    public static string Realtime = "(Realtime)";
+
     public static string[] SelectVaildJsonFolders(string[]  folders)
     {
         List<string> result= new List<string>(); 
@@ -17,7 +19,7 @@ public class HanoiUtil
                 result.Add(folder);
             }
         }
-        result.Add("realTime");
+        result.Add(Realtime);
         return result.ToArray();
     }
 
