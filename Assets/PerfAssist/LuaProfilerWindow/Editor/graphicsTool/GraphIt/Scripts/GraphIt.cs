@@ -7,24 +7,56 @@ public class  DataInfo{
     private float m_graphNum;
     private float m_frameTime;
     private float m_frameInterval;
+    private float m_luaConsuming;
+    private float m_funConsuming;
+    private int m_frameID;
     public DataInfo(float graphNum)
     {
         m_graphNum = graphNum;
     }
-    public DataInfo(float graphNum,float frameTime)
+    public DataInfo(float graphNum, float frameTime)
     {
         m_graphNum = graphNum;
         m_frameTime = frameTime;
     }
 
-    public DataInfo(float graphNum, float frameTime,float frameInterval)
+    public DataInfo(float graphNum, float frameTime, float frameInterval)
     {
         m_graphNum = graphNum;
         m_frameTime = frameTime;
         m_frameInterval = frameInterval;
     }
 
-    public float GraphNum{
+    public DataInfo(float graphNum, float frameTime, float frameInterval, int frameID)
+    {
+        m_graphNum = graphNum;
+        m_frameTime = frameTime;
+        m_frameInterval = frameInterval;
+        m_frameID = frameID;
+    }
+
+    public float FunConsuming
+    {
+        get
+        {
+            return m_funConsuming;
+        }
+
+        set { m_funConsuming = value; }
+    }
+
+    public float LuaConsuming
+    {
+        get
+        {
+            return m_luaConsuming;
+        }
+
+        set { m_luaConsuming = value; }
+    }
+
+    public float GraphNum
+    {
         get
         {
             return m_graphNum;
@@ -52,18 +84,25 @@ public class  DataInfo{
 
         set { m_frameInterval = value; }
     }
+
+    public int FrameID
+    {
+        get
+        {
+            return m_frameID;
+        }
+
+        set { m_frameID = value; }
+    }
 }
 
-public class GraphItDataInternal2
+public class GraphItDataInternalLuaPro
 {
-    public GraphItDataInternal2( int subgraph_index )
+    public GraphItDataInternalLuaPro( int subgraph_index )
     {
         mDataInfos = new List<DataInfo>();
-        mCounter = null;
         mMin = 0.0f;
         mMax = 0.0f;
-        mAvg = 0.0f;
-        mFastAvg = 0.0f;
 
         switch(subgraph_index)
         {
@@ -85,21 +124,17 @@ public class GraphItDataInternal2
         }
     }
     public List<DataInfo> mDataInfos;
-    public DataInfo mCounter;
     public float mMin;
     public float mMax;
-    public float mAvg;
-    public float mFastAvg;
-
     public Color mColor;
 }
 
-public class GraphItData2
+public class GraphItDataLuaPro
 {
     public const int DEFAULT_SAMPLES = 2048;
     public const int RECENT_WINDOW_SIZE = 120;
     
-    public Dictionary<string, GraphItDataInternal2> mData = new Dictionary<string, GraphItDataInternal2>();
+    public Dictionary<string, GraphItDataInternalLuaPro> mData = new Dictionary<string, GraphItDataInternalLuaPro>();
 
     public string mName;
 
@@ -117,11 +152,11 @@ public class GraphItData2
     protected float mHeight;
 
 
-    public GraphItData2( string name)
+    public GraphItDataLuaPro( string name)
     {
         mName = name;
 
-        mData = new Dictionary<string, GraphItDataInternal2>();
+        mData = new Dictionary<string, GraphItDataInternalLuaPro>();
 
         mCurrentIndex = 0;
         mInclude0 = true;
@@ -148,7 +183,7 @@ public class GraphItData2
 
     public int GraphLength()
     {
-        return mCurrentIndex;
+        return mCurrentIndex / mData.Count;
     }
 
     public float GetMin( string subgraph )
@@ -157,9 +192,9 @@ public class GraphItData2
         {
             bool min_set = false;
             float min = 0;
-            foreach (KeyValuePair<string, GraphItDataInternal2> entry in mData)
+            foreach (KeyValuePair<string, GraphItDataInternalLuaPro> entry in mData)
             {
-                GraphItDataInternal2 g = entry.Value;
+                GraphItDataInternalLuaPro g = entry.Value;
                 if (!min_set)
                 {
                     min = g.mMin;
@@ -173,7 +208,7 @@ public class GraphItData2
         {
             if (!mData.ContainsKey(subgraph))
             {
-                mData[subgraph] = new GraphItDataInternal2(mData.Count);
+                mData[subgraph] = new GraphItDataInternalLuaPro(mData.Count);
             }
             return mData[subgraph].mMin;
         }
@@ -185,9 +220,9 @@ public class GraphItData2
         {
             bool max_set = false;
             float max = 0;
-            foreach (KeyValuePair<string, GraphItDataInternal2> entry in mData)
+            foreach (KeyValuePair<string, GraphItDataInternalLuaPro> entry in mData)
             {
-                GraphItDataInternal2 g = entry.Value;
+                GraphItDataInternalLuaPro g = entry.Value;
                 if (!max_set)
                 {
                     max = g.mMax;
@@ -201,7 +236,7 @@ public class GraphItData2
         {
             if (!mData.ContainsKey(subgraph))
             {
-                mData[subgraph] = new GraphItDataInternal2(mData.Count);
+                mData[subgraph] = new GraphItDataInternalLuaPro(mData.Count);
             }
             return mData[subgraph].mMax;
         }
@@ -233,17 +268,17 @@ public class GraphItData2
 
 }
 
-public class GraphIt2 : MonoBehaviour
+public class GraphItLuaPro : MonoBehaviour
 {
 
 #if UNITY_EDITOR
     public const string BASE_GRAPH = "base";
     public const string VERSION = "1.2.0";
-    public Dictionary<string, GraphItData2> Graphs = new Dictionary<string, GraphItData2>();
-    static GraphIt2 mInstance = null;
+    public Dictionary<string, GraphItDataLuaPro> Graphs = new Dictionary<string, GraphItDataLuaPro>();
+    static GraphItLuaPro mInstance = null;
 #endif
 
-    public static GraphIt2 Instance
+    public static GraphItLuaPro Instance
     {
         get
         {
@@ -252,7 +287,7 @@ public class GraphIt2 : MonoBehaviour
             {
                 GameObject go = new GameObject("GraphIt");
                 go.hideFlags = HideFlags.HideAndDontSave;
-                mInstance = go.AddComponent<GraphIt2>();
+                mInstance = go.AddComponent<GraphItLuaPro>();
             }
             return mInstance;
 #else
@@ -265,100 +300,16 @@ public class GraphIt2 : MonoBehaviour
     {
         if (!mInstance) 
             return;
-        foreach (KeyValuePair<string, GraphItData2> kv in mInstance.Graphs)
+        foreach (KeyValuePair<string, GraphItDataLuaPro> kv in mInstance.Graphs)
         {
-            GraphItData2 g = kv.Value;
+            GraphItDataLuaPro g = kv.Value;
             g.mCurrentIndex = 0;
-            foreach (KeyValuePair<string, GraphItDataInternal2> entry in g.mData)
+            foreach (KeyValuePair<string, GraphItDataInternalLuaPro> entry in g.mData)
             {
-                GraphItDataInternal2 gdi = entry.Value;
+                GraphItDataInternalLuaPro gdi = entry.Value;
                 gdi.mDataInfos.Clear();
             }
         }
-    }
-
-    void StepGraphInternal(GraphItData2 graph)
-    {
-#if UNITY_EDITOR
-        foreach (KeyValuePair<string, GraphItDataInternal2> entry in graph.mData)
-        {
-            GraphItDataInternal2 g = entry.Value;
-            g.mDataInfos.Add(g.mCounter);
-        }
-
-        graph.mCurrentIndex = graph.mCurrentIndex + 1 ;
-
-        foreach (KeyValuePair<string, GraphItDataInternal2> entry in graph.mData)
-        {
-            GraphItDataInternal2 g = entry.Value;
-
-            float sum = g.mDataInfos[0].GraphNum;
-            float min = g.mDataInfos[0].GraphNum;
-            float max = g.mDataInfos[0].GraphNum;
-            for (int i = 1; i < graph.GraphLength(); ++i)
-            {
-                sum += g.mDataInfos[i].GraphNum;
-                min = Mathf.Min(min, g.mDataInfos[i].GraphNum);
-                max = Mathf.Max(max, g.mDataInfos[i].GraphNum);
-            }
-            if (graph.mInclude0)
-            {
-                min = Mathf.Min(min, 0.0f);
-                max = Mathf.Max(max, 0.0f);
-            }
-
-            //Calculate the recent average
-            int recent_start = graph.mCurrentIndex - GraphItData2.RECENT_WINDOW_SIZE;
-            int recent_count = GraphItData2.RECENT_WINDOW_SIZE;
-            if (recent_start < 0)
-            {
-                recent_count = graph.GraphLength();
-                recent_start = 0;
-            }
-
-            float recent_sum = 0.0f;
-            for (int i = 0; i < recent_count; ++i)
-            {
-                recent_sum += g.mDataInfos[recent_start].GraphNum;
-                recent_start = (recent_start + 1) % g.mDataInfos.Count;
-            }
-
-            g.mMin = min;
-            g.mMax = max;
-            g.mAvg = sum / graph.GraphLength();
-            g.mFastAvg = recent_sum / recent_count;
-        }
-#endif
-    }
-
-    // Update is called once per frame
-    void LateUpdate()
-    {
-#if UNITY_EDITOR
-        foreach (KeyValuePair<string, GraphItData2> kv in Graphs)
-        {
-            GraphItData2 g = kv.Value;
-            if (g.mReadyForUpdate && !g.mFixedUpdate)
-            {
-                StepGraphInternal(g);
-            }
-        }
-#endif
-    }
-
-    // Update is called once per fixed frame
-    void FixedUpdate()
-    {
-#if UNITY_EDITOR
-        foreach (KeyValuePair<string, GraphItData2> kv in Graphs)
-        {
-            GraphItData2 g = kv.Value;
-            if (g.mReadyForUpdate && g.mFixedUpdate )
-            {
-                StepGraphInternal(g);
-            }
-        }
-#endif
     }
 
     /// <summary>
@@ -386,10 +337,10 @@ public class GraphIt2 : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData2(graph);
+            Instance.Graphs[graph] = new GraphItDataLuaPro(graph);
         }
 
-        GraphItData2 g = Instance.Graphs[graph];
+        GraphItDataLuaPro g = Instance.Graphs[graph];
         g.mInclude0 = include_0;
 #endif
     }
@@ -405,10 +356,10 @@ public class GraphIt2 : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData2(graph);
+            Instance.Graphs[graph] = new GraphItDataLuaPro(graph);
         }
 
-        GraphItData2 g = Instance.Graphs[graph];
+        GraphItDataLuaPro g = Instance.Graphs[graph];
         g.SetHeight(height);
 #endif
     }
@@ -424,10 +375,10 @@ public class GraphIt2 : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData2(graph);
+            Instance.Graphs[graph] = new GraphItDataLuaPro(graph);
         }
 
-        GraphItData2 g = Instance.Graphs[graph];
+        GraphItDataLuaPro g = Instance.Graphs[graph];
         g.SetHidden(hidden);
 #endif
     }
@@ -443,15 +394,15 @@ public class GraphIt2 : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData2(graph);
+            Instance.Graphs[graph] = new GraphItDataLuaPro(graph);
         }
 
-        GraphItData2 g = Instance.Graphs[graph];
-        int samples = Math.Max(sample_window, GraphItData2.RECENT_WINDOW_SIZE + 1);
+        GraphItDataLuaPro g = Instance.Graphs[graph];
+        int samples = Math.Max(sample_window, GraphItDataLuaPro.RECENT_WINDOW_SIZE + 1);
         g.mWindowSize = samples;
-        foreach (KeyValuePair<string, GraphItDataInternal2> entry in g.mData)
+        foreach (KeyValuePair<string, GraphItDataInternalLuaPro> entry in g.mData)
         {
-            GraphItDataInternal2 _g = entry.Value;
+            GraphItDataInternalLuaPro _g = entry.Value;
             //_g.mDataPoints = new float[samples];
         }
 #endif
@@ -480,13 +431,13 @@ public class GraphIt2 : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData2(graph);
+            Instance.Graphs[graph] = new GraphItDataLuaPro(graph);
         }
 
-        GraphItData2 g = Instance.Graphs[graph];
+        GraphItDataLuaPro g = Instance.Graphs[graph];
         if (!g.mData.ContainsKey(subgraph))
         {
-            g.mData[subgraph] = new GraphItDataInternal2(g.mData.Count);
+            g.mData[subgraph] = new GraphItDataInternalLuaPro(g.mData.Count);
         }
         g.mData[subgraph].mColor = color;
 #endif
@@ -496,113 +447,26 @@ public class GraphIt2 : MonoBehaviour
     /// Log floating point data for this frame. Mutiple calls to this with the same graph will add logged values together.
     /// </summary>
     /// <param name="graph"></param>
-    /// <param name="f"></param>
-    public static void Log(string graph,DataInfo di)
-    {
-#if UNITY_EDITOR
-        Log(graph, BASE_GRAPH, di);
-#endif
-    }
-
-    /// <summary>
-    /// Log floating point data for this frame. Mutiple calls to this with the same graph will add logged values together.
-    /// </summary>
-    /// <param name="graph"></param>
     /// <param name="subgraph"></param>
     /// <param name="f"></param>
-    public static void Log(string graph, string subgraph, DataInfo di)
+    public static void Log(string graph, string subgraph, List<DataInfo> diList)
     {
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData2(graph);
+            Instance.Graphs[graph] = new GraphItDataLuaPro(graph);
         }
 
-        GraphItData2 g = Instance.Graphs[graph];
+        GraphItDataLuaPro g = Instance.Graphs[graph];
         if (!g.mData.ContainsKey(subgraph))
         {
-            g.mData[subgraph] = new GraphItDataInternal2(g.mData.Count);
+            g.mData[subgraph] = new GraphItDataInternalLuaPro(g.mData.Count);
         }
-        g.mData[subgraph].mCounter =di;
-
-        g.mReadyForUpdate = true;
-#endif
-    }
-
-    
-    /// <summary>
-    /// Log floating point data for this fixed frame. Mutiple calls to this with the same graph will add logged values together.
-    /// </summary>
-    /// <param name="graph"></param>
-    /// <param name="f"></param>
-    public static void LogFixed(string graph, DataInfo di)
-    {
-#if UNITY_EDITOR
-        LogFixed(graph, BASE_GRAPH, di);
-#endif
-    }
-
-    /// <summary>
-    /// Log floating point data for this fixed frame. Mutiple calls to this with the same graph will add logged values together.
-    /// </summary>
-    /// <param name="graph"></param>
-    /// <param name="subgraph"></param>
-    /// <param name="f"></param>
-    public static void LogFixed(string graph, string subgraph, DataInfo di)
-    {
-#if UNITY_EDITOR
-        Log(graph, subgraph, di);
-        //Instance.Graphs[graph].mFixedUpdate = true;
-#endif
-    }
-
-
-    /// <summary>
-    /// StepGraph allows you to step this graph to the next frame manually. This is useful if you want to log multiple frames worth of data on a single frame.
-    /// </summary>
-    /// <param name="graph"></param>
-    public static void StepGraph(string graph)
-    {
-#if UNITY_EDITOR
-        if (!Instance.Graphs.ContainsKey(graph))
+        foreach (var di in diList)
         {
-            Instance.Graphs[graph] = new GraphItData2(graph);
+            g.mData[subgraph].mDataInfos.Add(di);
         }
-        Instance.StepGraphInternal(Instance.Graphs[graph]);
-#endif
-    }
-
-    /// <summary>
-    /// Allows you to manually pause a graph. The graph will unpause as soon as you Log new data to it, or call UnpauseGraph.
-    /// </summary>
-    /// <param name="graph"></param>
-    public static void PauseGraph(string graph)
-    {
-#if UNITY_EDITOR
-        if (!Instance.Graphs.ContainsKey(graph))
-        {
-            Instance.Graphs[graph] = new GraphItData2(graph);
-        }
-
-        GraphItData2 g = Instance.Graphs[graph];
-        g.mReadyForUpdate = false;
-#endif
-    }
-
-    /// <summary>
-    /// Allows you to manually unpause a graph. Graphs are paused initially until you Log data to them.
-    /// </summary>
-    /// <param name="graph"></param>
-    public static void UnpauseGraph(string graph)
-    {
-#if UNITY_EDITOR
-        if (!Instance.Graphs.ContainsKey(graph))
-        {
-            Instance.Graphs[graph] = new GraphItData2(graph);
-        }
-
-        GraphItData2 g = Instance.Graphs[graph];
-        g.mReadyForUpdate = true;
+        Instance.Graphs[graph].mCurrentIndex += diList.Count;
 #endif
     }
 
@@ -616,10 +480,10 @@ public class GraphIt2 : MonoBehaviour
 #if UNITY_EDITOR
         if (!Instance.Graphs.ContainsKey(graph))
         {
-            Instance.Graphs[graph] = new GraphItData2(graph);
+            Instance.Graphs[graph] = new GraphItDataLuaPro(graph);
         }
 
-        GraphItData2 g = Instance.Graphs[graph];
+        GraphItDataLuaPro g = Instance.Graphs[graph];
         g.mSharedYAxis = shared_y_axis;
 #endif
     }

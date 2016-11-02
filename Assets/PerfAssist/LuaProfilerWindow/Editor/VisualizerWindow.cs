@@ -1,9 +1,9 @@
-﻿ using UnityEngine;
- using UnityEditor;
- using System.Collections.Generic;
-using System.IO;
-using System.Collections;
-using System.Security;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading;
+using UnityEditor;
+using UnityEngine;
      public class VisualizerWindow : EditorWindow
      {
          public enum MouseInArea
@@ -23,7 +23,7 @@ using System.Security;
 
          float targetTranslationX = 0;
          float targetTranslationInterval = 0;
-         float viewPointToGlobalTimeMarin = 10; 
+         float viewPointToGlobalTimeMarin = 10;
 
          public static float m_winWidth = 0.0f;
          public static float m_winHeight = 0.0f;
@@ -37,6 +37,10 @@ using System.Security;
          public static float m_detailScreenHeight = 0.0f;
          public static float m_detailScreenPosY = 0.0f;
 
+         List<string> sessionMsgList = new List<string>();
+         
+         float  HanleSessionTime = 0.0f;
+
          HanoiData m_data = new HanoiData();
          HanoiNode m_picked;
 
@@ -45,27 +49,139 @@ using System.Security;
          int _selectedJsonFileIndex = -1;
          string[] _JsonFilesPath = new string[] { };
 
+         public class SessionJsonObj
+         {
+             public bool readerFlag = false;
+             public ResovleSessionJsonResult m_resovleSessionResult;
+             public ResovleSessionJsonResult readResovleJsonResult()
+             {
+                 if (m_resovleSessionResult == null)
+                     return null;
+                 lock (this)  
+                 {
+                     if (!readerFlag)
+                     {          
+                         try
+                         {
+                             Monitor.Wait(this);
+                         }
+                         catch (SynchronizationLockException e)
+                         {
+                             Console.WriteLine(e);
+                         }
+                         catch (ThreadInterruptedException e)
+                         {
+                             Console.WriteLine(e);
+                         }
+                     }
+                     readerFlag = false;   
+                     Monitor.Pulse(this);   
+                 }
+                 return m_resovleSessionResult;
+             }
+
+             public void writeResovleJsonResult(ResovleSessionJsonResult resovleJsonResult)
+             {
+                 lock (this)  
+                 {
+                     if (readerFlag)
+                     {      
+                         try
+                         {
+                             Monitor.Wait(this);  
+                         }
+                         catch (SynchronizationLockException e)
+                         {
+                             Console.WriteLine(e);
+                         }
+                         catch (ThreadInterruptedException e)
+                         {
+                             Console.WriteLine(e);
+                         }
+                     }
+                     m_resovleSessionResult = resovleJsonResult;
+                     readerFlag = true;  
+                     Monitor.Pulse(this); 
+                 } 
+             }
+         }
+
+         static SessionJsonObj  sessionJsonObj  = new SessionJsonObj();
+
          [MenuItem("Window/"+Lua.g_editorWindow)]
          static void Create()
          {
              //// Get existing open window or if none, make a new one:
-             VisualizerWindow m_window = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
-             m_window.Show();
-             m_window.wantsMouseMove = true;
-             m_window.CheckForResizing();
+                VisualizerWindow m_window = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
+                 m_window.Show();
+                 m_window.wantsMouseMove = true;
+                 m_window.CheckForResizing();
          }
+
+         public void handleMsgAsyn(object o)
+         {
+             //var watch = new System.Diagnostics.Stopwatch();
+             //watch.Start();
+
+             StringBuilder strBuilder = new StringBuilder("");
+             foreach (string msg in (string[])o)
+             {
+                 strBuilder.Append(msg);
+                 strBuilder.Append(",");
+             }
+             var result = new JSONObject("[$$]".Replace("$$",strBuilder.ToString()));
+             var resovleJsonResult =m_data.handleSessionJsonObj(result);
+             if (resovleJsonResult != null)
+                 sessionJsonObj.writeResovleJsonResult(resovleJsonResult);
+             //watch.Stop();
+             //UnityEngine.Debug.LogFormat("handleMsgAsyn  time {0}", watch.ElapsedMilliseconds);
+         }
+
 
          void Update()
          {
-             if (m_isTestCallLua && Lua.Instance != null && Lua.Instance.m_LuaSvr != null)
-                 Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
+             //if ((Lua.Instance != null) && Lua.Instance.IsRegisterLuaProfilerCallback())
+             //    Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
+
+             if ((Lua.Instance != null) && Lua.Instance.IsRegisterLuaProfilerCallback())
+                 Lua.Instance.SetFrameInfo();
+
              doTranslationAnimation();
+
+             
+             if (m_data != null &&sessionMsgList.Count>0 &&Time.realtimeSinceStartup - HanleSessionTime >= 1.0f)
+             {
+                HanleSessionTime = Time.realtimeSinceStartup;
+              
+                Thread mThread = new Thread(new ParameterizedThreadStart(handleMsgAsyn));
+                mThread.Start(sessionMsgList.ToArray());
+                sessionMsgList.Clear();
+
+                 if (sessionJsonObj.readerFlag)
+                 {
+                     ResovleSessionJsonResult result = sessionJsonObj.readResovleJsonResult();
+                     if (result != null)
+                     {
+                         m_data.m_hanoiData.callStats.Children.AddRange(result.DetailResult);
+                         var dataInfoMap = result.NavigateResult;
+                         GraphItLuaPro.Log(HanoiData.GRAPH_TIMECONSUMING, HanoiData.SUBGRAPH_LUA_TIMECONSUMING_INCLUSIVE, dataInfoMap[HanoiData.SUBGRAPH_LUA_TIMECONSUMING_INCLUSIVE]);
+                         GraphItLuaPro.Log(HanoiData.GRAPH_TIMECONSUMING, HanoiData.SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE, dataInfoMap[HanoiData.SUBGRAPH_LUA_TIMECONSUMING_EXCLUSIVE]);
+                         GraphItLuaPro.Log(HanoiData.GRAPH_TIME_PERCENT, HanoiData.SUBGRAPH_LUA_PERCENT_INCLUSIVE, dataInfoMap[HanoiData.SUBGRAPH_LUA_PERCENT_INCLUSIVE]);
+                         GraphItLuaPro.Log(HanoiData.GRAPH_TIME_PERCENT, HanoiData.SUBGRAPH_LUA_PERCENT_EXCLUSIVE, dataInfoMap[HanoiData.SUBGRAPH_LUA_PERCENT_EXCLUSIVE]);
+                         Repaint();
+                     }
+                 }
+             }
          }
 
          private void doTranslationAnimation()
          {
              float delta = targetTranslationX - m_Translation.x;
-             if (Mathf.Abs(delta) >= targetTranslationInterval)
+             if (delta == 0)
+                 return;
+             if (Mathf.Abs(delta) < targetTranslationInterval)
+                 m_Translation.x = targetTranslationX;
+             else
              {
                  if (delta > 0)
                  {
@@ -75,46 +191,20 @@ using System.Security;
                  {
                      m_Translation.x -= targetTranslationInterval;
                  }
-                 Repaint();
-             }
-             else
-             {
-                 m_Translation.x = targetTranslationX;
-                 Repaint();
-             }
+             }                   
+             Repaint();
          }
-             
 
          public void onSessionMessage(string strInfo)
          {
-             Debug.Log(strInfo);
-             
              if (string.IsNullOrEmpty(strInfo))
                  return;
-
-             JSONObject jsonContent = new JSONObject(strInfo);
-
-             if (!jsonContent)
-                 return;
-
-             if (jsonContent.type != JSONObject.Type.OBJECT)
-                 return;
-
-             VisualizerWindow myWindow = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
-             myWindow.handleSessionMessage(jsonContent);
-             myWindow.Repaint();
-         }
-
-         private void handleSessionMessage(JSONObject jsonMsg) {
-             if (m_data == null || m_data.Root == null || m_data.Root.callStats == null)
-                 return;
-             m_data.handleMsgForDetailScreen(jsonMsg);
-             m_data.hanleMsgForNavigationScreen(jsonMsg);
+             sessionMsgList.Add(strInfo);
          }
 
          void OnDestroy() {
-             if (!Lua.Instance.IsRegisterLuaProfilerCallback())
-                 Lua.Instance.UnRegisterLuaProfilerCallback();
+              if (Lua.Instance.IsRegisterLuaProfilerCallback())
+                  Lua.Instance.UnRegisterLuaProfilerCallback();
          }
 
          public VisualizerWindow()
@@ -139,19 +229,17 @@ using System.Security;
              GUILayout.BeginArea(new Rect(0, m_navigationScreenPosY, m_winWidth, m_navigationScreenHeight));
              {
                  if (m_data.isHanoiDataHasContent())
-                     GraphItWindow.DrawGraphs(position, this);
+                     GraphItWindowLuaPro.DrawGraphs(position, this);
              }
              GUILayout.EndArea();
 
-             if (m_data.isHanoiDataLoadSucc())
+             if (m_data.isHanoiDataLoadSucc() && (EditorWindow.focusedWindow == this))
              {
                  CheckForInput();
                  //detail窗口内容
                  GUILayout.BeginArea(new Rect(0, m_detailScreenPosY, m_winWidth, m_detailScreenHeight));
                  {
                      Handles.matrix = Matrix4x4.TRS(m_Translation, Quaternion.identity, new Vector3(m_Scale.x, m_Scale.y, 1));
-                     
-                     HanoiUtil.TotalTimeConsuming = HanoiUtil.calculateTotalTimeConsuming(m_data.Root.callStats);
                      HanoiUtil.CalculateFrameInterval(m_data.Root.callStats, null);
                      calculateStackHeight();
 
@@ -169,10 +257,11 @@ using System.Security;
          }
 
          private void reInitHanoiRoot() {
-             GraphIt.Clear();
+             GraphItLuaPro.Clear();
              m_data.m_hanoiData = new HanoiRoot();
              m_data.Root.callStats = new HanoiNode(null);
              _selectedJsonFileIndex = _JsonFilesPath.Length - 1;
+             GraphItWindowLuaPro.MouseXOnPause = -1;
          }
 
          private void handleCommandEvent()
@@ -189,6 +278,8 @@ using System.Security;
              if (Event.current.commandName.Equals("AppStoped"))
              {
                  refreshCheckJasonFilesUpadate();
+                 if (Lua.Instance.IsRegisterLuaProfilerCallback())
+                     Lua.Instance.UnRegisterLuaProfilerCallback();
              }
          }
          private void drawGUIElement()
@@ -198,53 +289,42 @@ using System.Security;
                  GUILayout.MaxWidth(150);
                  GUI.color = Color.white;
                  Handles.color = Color.white;
-                 EditorGUIUtility.labelWidth =80;
+                 EditorGUIUtility.labelWidth = 80;
                  int currentSelectedIndex = EditorGUILayout.Popup(string.Format("Sessions"), _selectedJsonFileIndex, _JsonFilesPath, GUILayout.Width(350));
-                 if (currentSelectedIndex > 0 && _JsonFilesPath[currentSelectedIndex] == HanoiUtil.Realtime)
-                 {
-                     reInitHanoiRoot();
-                     _selectedJsonFileIndex = currentSelectedIndex;
-                 }
-                 else
-                 {
-                     if (GUILayout.Button("Load", GUILayout.Width(50)))
-                     {
-                         if (currentSelectedIndex < 0)
-                             throw new System.ArgumentException(string.Format("invalid selected index ({0}). ", currentSelectedIndex));
+                 _selectedJsonFileIndex = currentSelectedIndex;
+                 if (GUILayout.Button("Load", GUILayout.Width(50)))
+                     loadSelectedSessions(currentSelectedIndex);
 
-                         string file = getSessionsBySelectedIndex(HanoiUtil.GetVaildJsonFolders(), currentSelectedIndex);
-                         loadSession(file);
-                         _selectedJsonFileIndex = currentSelectedIndex;
-                     }
-                 }
-
-                 if (GUILayout.Button("Loadfile"))
+                 if (GUILayout.Button("Loadfile", GUILayout.Width(90)))
                  {
                      string path = EditorUtility.OpenFilePanel("Open a lua_perf json", "", "json");
                      if (path.Length != 0)
                      {
                          loadSession(path);
-                     }                     
+                     }
                  }
 
-                 GraphItWindow.SelectTimeLimitIndex = EditorGUILayout.Popup(string.Format("TimeLimit"), GraphItWindow.SelectTimeLimitIndex, new string[] { "none", "100", "80", "60", "40", "20" }, GUILayout.Width(180));
+                 GraphItWindowLuaPro._TimeLimitSelectIndex = GUI.SelectionGrid(new Rect(500, 0, 350, 20), GraphItWindowLuaPro._TimeLimitSelectIndex, GraphItWindowLuaPro._TimeLimitStrOption, GraphItWindowLuaPro._TimeLimitStrOption.Length);
+                 GraphItWindowLuaPro._PercentLimitSelectIndex = GUI.SelectionGrid(new Rect(950, 0, 300, 20), GraphItWindowLuaPro._PercentLimitSelectIndex, GraphItWindowLuaPro._PercentLimitStrOption, GraphItWindowLuaPro._PercentLimitStrOption.Length);
              }
              GUILayout.EndHorizontal();
          }
 
-         private void loadSession(string file)
+         private void loadSelectedSessions(int currentSelectedIndex)
          {
              try
              {
-                 if (string.IsNullOrEmpty(file))
-                     throw new System.ArgumentException(string.Format("bad path `{0}`. ", file));
+                 if (currentSelectedIndex < 0)
+                     throw new System.ArgumentException(string.Format("invalid selected index ({0}). ", currentSelectedIndex));
 
-                 if (!m_data.Load(file))
-                     throw new System.ArgumentException(string.Format("loading file `{0}` failed. ", file));
+                 if (currentSelectedIndex == _JsonFilesPath.Length - 1)
+                 {
+                     reInitHanoiRoot();
+                     return;
+                 }
 
-                 HanoiUtil.TotalTimeConsuming = HanoiUtil.calculateTotalTimeConsuming(m_data.Root.callStats);
-                 HanoiUtil.CalculateFrameInterval(m_data.Root.callStats, null);
-                 calculateStackHeight();
+                 string file = getSessionsBySelectedIndex(HanoiUtil.GetVaildJsonFolders(), currentSelectedIndex);
+                 loadSession(file);
              }
              catch (System.Exception ex)
              {
@@ -253,6 +333,16 @@ using System.Security;
                  EditorUtility.DisplayDialog("load sessions error", string.Format("[Hanoi] Loading session failed. ({0})", ex.Message), "确认");
              }
          }
+
+         private void loadSession(string file)
+         {
+             if (!loadJsonData(file))
+                 throw new System.ArgumentException(string.Format("loading file `{0}` failed. ", file));
+
+             HanoiUtil.CalculateFrameInterval(m_data.Root.callStats, null);
+             calculateStackHeight();
+         }
+
 
          private string getSessionsBySelectedIndex(string[] jsonFolders ,int selectedIndex)
          {
@@ -307,7 +397,7 @@ using System.Security;
          private void showMouseGlobalTime() {
              float globalTimeLabelHight = m_detailScreenHeight / 10;
              Rect r = new Rect();
-             r.position = new Vector2(mousePositionInDrawing.x, globalTimeLabelHight);
+             r.position = new Vector2(mousePositionInDrawing.x, globalTimeLabelHight * 2);
              r.width = HanoiVars.LabelBackgroundWidth/2;
              r.height = 15;
              Color bg = Color.yellow;
@@ -317,7 +407,18 @@ using System.Security;
              GUI.color = Color.black;
              Handles.color = Color.yellow;
              Handles.DrawLine(new Vector3(mousePositionInDrawing.x, 0), new Vector3(mousePositionInDrawing.x, m_detailScreenHeight));
-             Handles.Label(new Vector3(mousePositionInDrawing.x, globalTimeLabelHight), string.Format("Time: {0:0.000}", mousePositionInDrawing.x));
+             Handles.Label(new Vector3(mousePositionInDrawing.x, globalTimeLabelHight*2), string.Format("Time: {0:0.000}", mousePositionInDrawing.x));
+         }
+
+         private bool loadJsonData(string jsonFile)
+         {
+             if (string.IsNullOrEmpty(jsonFile)) 
+                 return false;
+             bool succ = m_data.Load(jsonFile);
+             if (!succ) 
+                 return false;
+             
+             return true;
          }
 
          private void drawTimeInterval() {
@@ -360,13 +461,6 @@ using System.Security;
             return interval;
          }
 
-         /// <summary>
-         /// 自动计算scale大小，使图形适配屏幕大小
-         /// </summary>
-         public void fitScreenSizeScale() {
-             float fitScaleX = m_winWidth / (HanoiUtil.TotalTimeConsuming);
-             m_Scale.x = fitScaleX;
-         }
 
          public void CheckForResizing()
          {
@@ -386,10 +480,10 @@ using System.Security;
              m_controlScreenHeight = m_winHeight - m_detailScreenHeight - m_navigationScreenHeight;
              m_controlScreenPosY = 0.0f;
 
-             GraphIt.GraphSetupHeight(HanoiData.GRAPH_TIMECONSUMING, m_navigationScreenHeight / 2 - GraphItWindow.y_gap);
-             GraphIt.GraphSetupHeight(HanoiData.GRAPH_TIME_PERCENT, m_navigationScreenHeight / 2 - GraphItWindow.y_gap);
-             GraphIt.ShareYAxis(HanoiData.GRAPH_TIMECONSUMING,true);
-             GraphIt.ShareYAxis(HanoiData.GRAPH_TIME_PERCENT,true);
+             GraphItLuaPro.GraphSetupHeight(HanoiData.GRAPH_TIMECONSUMING, m_navigationScreenHeight / 2 - GraphItWindowLuaPro.y_gap);
+             GraphItLuaPro.GraphSetupHeight(HanoiData.GRAPH_TIME_PERCENT, m_navigationScreenHeight / 2 - GraphItWindowLuaPro.y_gap);
+             GraphItLuaPro.ShareYAxis(HanoiData.GRAPH_TIMECONSUMING,true);
+             GraphItLuaPro.ShareYAxis(HanoiData.GRAPH_TIME_PERCENT,true);
          }
 
          private void calculateStackHeight() {
@@ -402,6 +496,7 @@ using System.Security;
                  return;
 
              HanoiVars.LabelBackgroundWidth = GetDrawingLengthByPanelPixels(200);
+             HanoiUtil.m_ShowDigitMax = GetDrawingLengthByPanelPixels(1) / 1000.0f;
              HanoiVars.DrawnStackCount = m_data.MaxStackLevel;
 
              // draw 3 passes
@@ -462,7 +557,7 @@ using System.Security;
                      m_isTestCallLua = !m_isTestCallLua;
                      EditorApplication.isPaused = false;
                      break;
-                 case EventType.MouseMove:
+                 case EventType.mouseMove:
                      {
                          if (m_picked != null)
                          {
@@ -473,8 +568,9 @@ using System.Security;
                          HanoiNode picked = PickHanoiRecursively(m_data.Root.callStats, mousePositionInDetailScreen);
                          if (picked != null)
                          {
-                             HanoiUtil.ForeachInParentChain(picked, (n) => { 
-                                 n.highlighted = true; 
+                             HanoiUtil.ForeachInParentChain(picked, (n) =>
+                             {
+                                 n.highlighted = true;
                              });
                              m_picked = picked;
 
@@ -482,7 +578,7 @@ using System.Security;
                          }
                          else
                          {
-                            // Debug.LogFormat("Picked nothing.");
+                             // Debug.LogFormat("Picked nothing.");
                          }
 
                          if (EditorWindow.focusedWindow == this)
@@ -493,7 +589,8 @@ using System.Security;
                                  m_mouseArea = MouseInArea.DetailScreen;
                                  Repaint();
                              }
-                             else {
+                             else
+                             {
                                  m_mouseArea = MouseInArea.none;
                              }
                          }

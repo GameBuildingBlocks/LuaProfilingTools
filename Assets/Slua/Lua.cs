@@ -16,6 +16,10 @@ public class Lua
     public const string g_editorWindow = "VisualizerWindow";
     private static Lua m_Instance = null;
 
+    public delegate void OnLuaMessage(string data);
+    private OnLuaMessage _onluaMessage = null;
+
+
     public LuaSvr m_LuaSvr = null;
     private string m_strPath = Application.temporaryCachePath;
     private string m_strTime = Application.bundleIdentifier + "." + System.DateTime.Now.Year.ToString() + "-" + System.DateTime.Now.Month.ToString() + "-" + System.DateTime.Now.Day.ToString() + "-" + System.DateTime.Now.Hour.ToString() + "-" + System.DateTime.Now.Minute.ToString() + "-" + System.DateTime.Now.Second.ToString();
@@ -30,6 +34,23 @@ public class Lua
             return m_Instance;
         }
     }
+
+
+    public static void OnMessage(string data)
+    {
+        if (m_Instance._onluaMessage != null)
+        {
+            m_Instance._onluaMessage(data);
+        }
+        //Debug.Log(msg);
+    }
+
+    public void SetLuaCallback()
+    {
+        LuaDLL.register_callback(OnMessage);
+    }
+
+
 
     public void InitLuaProfiler()
     {
@@ -80,9 +101,14 @@ public bool IsRegisterLuaProfilerCallback()
         return LuaDLL.isregister_callback();
     }
 
-    public void RegisterLuaProfilerCallback(LuaProfilerCallback callback)
+    public void RegisterLuaProfilerCallback(OnLuaMessage  callback)
     {
-        LuaDLL.register_callback(callback);
+        //LuaDLL.register_callback(callback);
+        if (callback != null)
+            _onluaMessage = callback;
+        else
+            Debug.LogError("callback can't null");
+        SetLuaCallback();
     }
 
     public void RegisterLuaProfilerCallback2(string obj,string method)

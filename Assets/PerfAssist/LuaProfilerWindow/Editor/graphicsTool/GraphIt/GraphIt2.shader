@@ -37,7 +37,7 @@
             v2f vert (appdata_full v)
             {
                 v2f o;
-				if(_DataHeightMaxLimit >0 &&_BottomLineHeight-v.vertex.y >_LineHeight)
+				if(_BottomLineHeight-v.vertex.y >_LineHeight)
                 {
 					v.vertex.y =_BottomLineHeight-_LineHeight;
                     v.color = float4(1,0,0,1);
