@@ -353,7 +353,7 @@ public class HanoiData
 
         HanoiNode newNode = null;
 
-        bool isFrameInfo = jsonMsg.GetField("frameID");
+        bool isFrameInfo = jsonMsg.GetField("fid");
         //是帧信息
         if (isFrameInfo)
         {
@@ -375,33 +375,33 @@ public class HanoiData
         if (jsonMsg == null || jsonMsg.IsNull || jsonMsg.type != JSONObject.Type.OBJECT)
             return;
 
-        JSONObject luaConsuming = jsonMsg.GetField("luaConsuming");
+        JSONObject luaConsuming = jsonMsg.GetField("lc");
         if (!luaConsuming ||!luaConsuming.IsNumber){
             //Debug.LogFormat("luaConsuming load error");
             return;
         }
 
-        JSONObject funConsuming = jsonMsg.GetField("funConsuming");
+        JSONObject funConsuming = jsonMsg.GetField("fc");
         if (!funConsuming ||!funConsuming.IsNumber){
             Debug.LogFormat("funConsuming load error");
             return;
         }
 
-        JSONObject frameTime = jsonMsg.GetField("frameTime");
+        JSONObject frameTime = jsonMsg.GetField("ft");
         if (!frameTime || !frameTime.IsNumber)
         {
             Debug.LogFormat("frameTime load error");
             return;
         }
 
-        JSONObject frameInterval = jsonMsg.GetField("frameInterval");
+        JSONObject frameInterval = jsonMsg.GetField("fi");
         if (!frameInterval || !frameInterval.IsNumber)
         {
             Debug.LogFormat("frameInterval load error");
             return;
         }
 
-        JSONObject frameID = jsonMsg.GetField("frameID");
+        JSONObject frameID = jsonMsg.GetField("fid");
         if (!frameID || !frameID.IsNumber)
         {
             Debug.LogFormat("frameID load error");
