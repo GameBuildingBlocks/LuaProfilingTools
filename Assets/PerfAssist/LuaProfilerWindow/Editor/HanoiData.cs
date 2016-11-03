@@ -67,25 +67,19 @@ public class HanoiNode
             JSONObject val = job.list[i];
             switch (job.keys[i])
             {
-                case "currentLine":
+                case "ln":
                     if (val.IsNumber)
                     {
                         currentLine = (int)val.n;
                     }
                     break;
-                case "lineDefined":
-                    if (val.IsNumber)
-                    {
-                        lineDefined = (int)val.n;
-                    }
-                    break;
-                case "timeConsuming":
+                case "cs":
                     if (val.IsNumber)
                     {
                         timeConsuming = val.n;
                     }
                     break;
-                case "stackLevel":
+                case "lv":
                     if (val.IsNumber)
                     {
                         stackLevel = (int)val.n;
@@ -95,7 +89,7 @@ public class HanoiNode
                         }
                     }
                     break;
-                case "callType":
+                case "info":
                     if (val.IsString)
                     {
                         string type = val.str;
@@ -105,31 +99,31 @@ public class HanoiNode
                             callType = eHanoiCallType.Lua;
                     }
                     break;
-                case "begintime":
+                case "bt":
                     if (val.IsNumber)
                     {
                         beginTime = val.n;
                     }
                     break;
-                case "endtime":
+                case "et":
                     if (val.IsNumber)
                     {
                         endTime = val.n;
                     }
                     break;
-                case "moduleName":
+                case "mod":
                     if (val.IsString)
                     {
                         moduleName = val.str;
                     }
                     break;
-                case "funcName":
+                case "fn":
                     if (val.IsString)
                     {
                         funcName = val.str;
                     }
                     break;
-                case "children":
+                case "sub":
                     foreach (JSONObject childJson in val.list)
                     {
                         HanoiNode child = new HanoiNode(this);
@@ -151,7 +145,6 @@ public class HanoiNode
     public int stackLevel = HanoiConst.BAD_NUM;
 
     public int currentLine = HanoiConst.BAD_NUM;
-    public int lineDefined = HanoiConst.BAD_NUM;
 
     public eHanoiCallType callType = eHanoiCallType.None;
     public double timeConsuming ;
@@ -199,31 +192,31 @@ public class HanoiFrameInfo : HanoiNode
             JSONObject val = job.list[i];
             switch (job.keys[i])
             {
-                case "frameTime":
+                case "ft":
                     if (val.IsNumber)
                     {
                         frameTime = val.f;
                     }
                     break;
-                case "frameUnityTime":
+                case "fut":
                     if (val.IsNumber)
                     {
                         frameUnityTime = val.f;
                     }
                     break;
-                case "frameID":
+                case "fid":
                     if (val.IsNumber)
                     {
                         frameID = (int)val.n;
                     }
                     break;
-                case "luaConsuming":
+                case "lc":
                     if (val.IsNumber)
                     {
                         frameLuaTime = val.f;
                     }
                     break;
-                case "funConsuming":
+                case "fc":
                     if (val.IsNumber)
                     {
                         frameFunTime = val.f;
