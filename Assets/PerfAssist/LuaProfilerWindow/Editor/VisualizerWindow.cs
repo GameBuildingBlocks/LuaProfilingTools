@@ -407,7 +407,7 @@ using UnityEngine;
              GUI.color = Color.black;
              Handles.color = Color.yellow;
              Handles.DrawLine(new Vector3(mousePositionInDrawing.x, 0), new Vector3(mousePositionInDrawing.x, m_detailScreenHeight));
-             Handles.Label(new Vector3(mousePositionInDrawing.x, globalTimeLabelHight*2), string.Format("Time: {0:0.000}", mousePositionInDrawing.x));
+             Handles.Label(new Vector3(mousePositionInDrawing.x, globalTimeLabelHight * 2), string.Format("Time: {0:0.000}", mousePositionInDrawing.x + HanoiUtil.FrameTimeOnPause));
          }
 
          private bool loadJsonData(string jsonFile)
@@ -441,7 +441,7 @@ using UnityEngine;
 
              foreach(float posX  in timeIntervalPosXList){
                  Handles.DrawLine(new Vector3(posX, timeLineHight), new Vector3(posX, m_detailScreenHeight));
-                 Handles.Label(new Vector3(posX, timeLineHight), string.Format("{0:0.00}", posX));
+                 Handles.Label(new Vector3(posX, timeLineHight), string.Format("{0:0.00}", posX + HanoiUtil.FrameTimeOnPause));
              }
          }
 
@@ -628,6 +628,11 @@ using UnityEngine;
                      break;
              }
          }
+
+         public void setFrameTimeOnPause(float frameTime) {
+             HanoiUtil.FrameTimeOnPause = frameTime;
+         }
+
 
          private HanoiNode PickHanoiRecursively(HanoiNode n, Vector2 mousePos)
          {

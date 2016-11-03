@@ -393,7 +393,8 @@ public class GraphItWindowLuaPro : EditorWindow
                                                 MouseXOnPause = x0;
                                                 FrameIDOnPause = frameID;
                                                 VisualizerWindow myWindow = (VisualizerWindow)EditorWindow.GetWindow(typeof(VisualizerWindow));
-                                                myWindow.setViewPointToGlobalTime(frameTime, interval, mMouseX);
+                                                myWindow.setFrameTimeOnPause(frameTime);
+                                                myWindow.setViewPointToGlobalTime(0, interval, mMouseX);
                                                 myWindow.m_isTestCallLua = false;
                                                 EditorApplication.isPaused = true;
                                                 break;

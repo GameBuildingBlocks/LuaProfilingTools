@@ -8,6 +8,9 @@ public delegate void HanoiNodeAction(HanoiNode n);
 public class HanoiUtil 
 {
     public static string Realtime = "(Realtime)";
+    public static float FrameTimeOnPause = 0.0f;
+
+
 
     public static string[] SelectVaildJsonFolders(string[]  folders)
     {
@@ -104,9 +107,9 @@ public class HanoiUtil
             HanoiFrameInfo hfi = (HanoiFrameInfo)n;
             Color preColor = Handles.color;
 
-            if (mouseX >= hfi.frameTime && mouseX <= hfi.frameEndTime)
+            if (mouseX >= hfi.frameTime - FrameTimeOnPause && mouseX <= hfi.frameEndTime - FrameTimeOnPause)
             {
-                float beginPosX = hfi.frameTime + (hfi.frameEndTime - hfi.frameTime)/2;
+                float beginPosX = hfi.frameTime + (hfi.frameEndTime - hfi.frameTime) / 2 - FrameTimeOnPause;
                 Rect r = new Rect();
                 r.position = new Vector2(beginPosX, 0);
                 r.width = HanoiVars.LabelBackgroundWidth / 1.5f;
@@ -122,8 +125,8 @@ public class HanoiUtil
                 Handles.Label(new Vector3(beginPosX, 30), string.Format("frameInterval:{0:0.00}", hfi.frameEndTime - hfi.frameTime));
                 Handles.Label(new Vector3(beginPosX, 45), string.Format("functionTime:{0:0.000}", hfi.frameFunTime));
                 Handles.Label(new Vector3(beginPosX, 60), string.Format("luaTime:{0:0.000}", hfi.frameLuaTime));
-                Handles.DrawLine(new Vector3(hfi.frameTime, 0), new Vector3(hfi.frameTime, VisualizerWindow.m_winHeight));
-                Handles.DrawLine(new Vector3(hfi.frameEndTime, 0), new Vector3(hfi.frameEndTime, VisualizerWindow.m_winHeight));
+                Handles.DrawLine(new Vector3(hfi.frameTime -FrameTimeOnPause, 0), new Vector3(hfi.frameTime -FrameTimeOnPause, VisualizerWindow.m_winHeight));
+                Handles.DrawLine(new Vector3(hfi.frameEndTime - FrameTimeOnPause, 0), new Vector3(hfi.frameEndTime - FrameTimeOnPause, VisualizerWindow.m_winHeight));
             }
             Handles.color = preColor;
         }
@@ -139,12 +142,12 @@ public class HanoiUtil
         if (n is HanoiFrameInfo)
         {
             HanoiFrameInfo hfi = (HanoiFrameInfo)n;
-            if (IsTimeRangeInScreenClipRange((float)hfi.frameTime, (float)hfi.frameTime))
+            if (IsTimeRangeInScreenClipRange((float)hfi.frameTime - FrameTimeOnPause, (float)hfi.frameTime - FrameTimeOnPause))
             {
                 Color preColor = Handles.color;
                 Handles.color = Color.gray;
 
-                Handles.DrawLine(new Vector3(hfi.frameTime, 0), new Vector3(hfi.frameTime, VisualizerWindow.m_winHeight));
+                Handles.DrawLine(new Vector3(hfi.frameTime - FrameTimeOnPause, 0), new Vector3(hfi.frameTime - FrameTimeOnPause, VisualizerWindow.m_winHeight));
                 Handles.color = preColor;
             }
         }
@@ -161,7 +164,7 @@ public class HanoiUtil
         {
         }
         else {
-            if (n.timeConsuming > m_ShowDigitMax && IsTimeRangeInScreenClipRange((float)n.beginTime, (float)n.beginTime + (float)n.timeConsuming))
+            if (n.timeConsuming > m_ShowDigitMax && IsTimeRangeInScreenClipRange((float)(n.beginTime - FrameTimeOnPause), (float)(n.beginTime - FrameTimeOnPause) + (float)n.timeConsuming))
             {
 
                     int hash = n.GetHashCode();
@@ -170,7 +173,7 @@ public class HanoiUtil
                     {
                         m_colors[hash] = c = n.GetNodeColor();
                     }
-                    n.renderRect = new Rect((float)n.beginTime, HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel)
+                    n.renderRect = new Rect((float)(n.beginTime - FrameTimeOnPause), HanoiVars.StackHeight * (HanoiVars.DrawnStackCount - n.stackLevel)
                         , (float)n.timeConsuming, HanoiVars.StackHeight);
                     Handles.DrawSolidRectangleWithOutline(n.renderRect, c, n.highlighted ? Color.white : c);
             }
@@ -186,7 +189,7 @@ public class HanoiUtil
     {
         if (n.highlighted)
         {
-            if (IsTimeRangeInScreenClipRange(n.renderRect.xMin, n.renderRect.xMin + HanoiVars.LabelBackgroundWidth))
+            if (IsTimeRangeInScreenClipRange(n.renderRect.xMin - FrameTimeOnPause, n.renderRect.xMin + HanoiVars.LabelBackgroundWidth))
             {
                 Rect r = n.renderRect;
 
@@ -199,7 +202,7 @@ public class HanoiUtil
                 GUI.color = Color.white;
                 Handles.Label(new Vector3(n.renderRect.xMin, n.renderRect.yMin), n.funcName);
                 Handles.Label(new Vector3(n.renderRect.xMin, n.renderRect.yMin + 15), n.moduleName);
-                Handles.Label(new Vector3(n.renderRect.xMin, n.renderRect.yMin + 30), string.Format("Time: {0:0.000}", n.timeConsuming));
+                Handles.Label(new Vector3(n.renderRect.xMin , n.renderRect.yMin + 30), string.Format("Time: {0:0.000}", n.timeConsuming));
             }
         }
 
