@@ -23,6 +23,9 @@ extern "C" {
 #endif
 
 //pOutputCallback = NULL;
+void lprofC_start_timer2(LARGE_INTEGER *nBeginTime);
+double lprofC_get_seconds2(LARGE_INTEGER *nBeginTime);
+
 
 void sendUnityMessage(const char* pMsg)
 {
