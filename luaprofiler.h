@@ -10,7 +10,13 @@ luaprofiler.h:
 *****************************************************************************/
 #include "lua.h"
 #include "lauxlib.h"
-#define DLL_API __declspec(dllexport) 
+
+#ifdef _WIN32
+#   define DLL_API __declspec(dllexport) 
+#else
+#   define DLL_API 
+#endif 
+
 
 DLL_API void init_profiler(lua_State *L);
 
