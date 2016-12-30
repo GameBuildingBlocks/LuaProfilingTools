@@ -125,8 +125,8 @@ public class HanoiUtil
                 Handles.Label(new Vector3(beginPosX, 30), string.Format("frameInterval:{0:0.00}", hfi.frameEndTime - hfi.frameTime));
                 Handles.Label(new Vector3(beginPosX, 45), string.Format("functionTime:{0:0.000}", hfi.frameFunTime));
                 Handles.Label(new Vector3(beginPosX, 60), string.Format("luaTime:{0:0.000}", hfi.frameLuaTime));
-                Handles.DrawLine(new Vector3(hfi.frameTime -FrameTimeOnPause, 0), new Vector3(hfi.frameTime -FrameTimeOnPause, VisualizerWindow.m_winHeight));
-                Handles.DrawLine(new Vector3(hfi.frameEndTime - FrameTimeOnPause, 0), new Vector3(hfi.frameEndTime - FrameTimeOnPause, VisualizerWindow.m_winHeight));
+                Handles.DrawLine(new Vector3(hfi.frameTime -FrameTimeOnPause, 0), new Vector3(hfi.frameTime -FrameTimeOnPause, LuaProfilerWindow.m_winHeight));
+                Handles.DrawLine(new Vector3(hfi.frameEndTime - FrameTimeOnPause, 0), new Vector3(hfi.frameEndTime - FrameTimeOnPause, LuaProfilerWindow.m_winHeight));
             }
             Handles.color = preColor;
         }
@@ -147,7 +147,7 @@ public class HanoiUtil
                 Color preColor = Handles.color;
                 Handles.color = Color.gray;
 
-                Handles.DrawLine(new Vector3(hfi.frameTime - FrameTimeOnPause, 0), new Vector3(hfi.frameTime - FrameTimeOnPause, VisualizerWindow.m_winHeight));
+                Handles.DrawLine(new Vector3(hfi.frameTime - FrameTimeOnPause, 0), new Vector3(hfi.frameTime - FrameTimeOnPause, LuaProfilerWindow.m_winHeight));
                 Handles.color = preColor;
             }
         }

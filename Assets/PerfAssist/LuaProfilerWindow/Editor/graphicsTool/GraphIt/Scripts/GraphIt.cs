@@ -400,11 +400,11 @@ public class GraphItLuaPro : MonoBehaviour
         GraphItDataLuaPro g = Instance.Graphs[graph];
         int samples = Math.Max(sample_window, GraphItDataLuaPro.RECENT_WINDOW_SIZE + 1);
         g.mWindowSize = samples;
-        foreach (KeyValuePair<string, GraphItDataInternalLuaPro> entry in g.mData)
-        {
-            GraphItDataInternalLuaPro _g = entry.Value;
+        //foreach (KeyValuePair<string, GraphItDataInternalLuaPro> entry in g.mData)
+        //{
+            //GraphItDataInternalLuaPro _g = entry.Value;
             //_g.mDataPoints = new float[samples];
-        }
+       // }
 #endif
     }
 
