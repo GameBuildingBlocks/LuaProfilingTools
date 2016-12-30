@@ -107,8 +107,8 @@ using UnityEngine;
          }
 
          static SessionJsonObj  sessionJsonObj  = new SessionJsonObj();
-
-         [MenuItem("Window/LuaProfilerWindow")]
+         
+         [MenuItem(PAEditorConst.MenuPath + "/LuaProfilerWindow")]
          static void Create()
          {
              //// Get existing open window or if none, make a new one:
