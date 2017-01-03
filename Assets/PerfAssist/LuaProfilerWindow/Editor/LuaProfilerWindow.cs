@@ -179,19 +179,7 @@ using UnityEngine;
              float delta = targetTranslationX - m_Translation.x;
              if (delta == 0)
                  return;
-             if (Mathf.Abs(delta) < targetTranslationInterval)
-                 m_Translation.x = targetTranslationX;
-             else
-             {
-                 if (delta > 0)
-                 {
-                     m_Translation.x += targetTranslationInterval;
-                 }
-                 else
-                 {
-                     m_Translation.x -= targetTranslationInterval;
-                 }
-             }                   
+             m_Translation.x = targetTranslationX;
              Repaint();
          }
 
