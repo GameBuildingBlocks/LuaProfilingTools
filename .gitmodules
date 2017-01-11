@@ -1,0 +1,6 @@
+[submodule "Hanoi-Core"]
+	path = Hanoi-Core
+	url = https://github.com/mc-gulu/Hanoi-Core.git
+[submodule "Hanoi-UnitySlua"]
+	path = Hanoi-UnitySlua
+	url = https://github.com/mc-gulu/Hanoi-UnitySlua.git
