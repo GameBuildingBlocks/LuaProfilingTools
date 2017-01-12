@@ -402,9 +402,9 @@ public class GraphItLuaPro : MonoBehaviour
         g.mWindowSize = samples;
         //foreach (KeyValuePair<string, GraphItDataInternalLuaPro> entry in g.mData)
         //{
-            //GraphItDataInternalLuaPro _g = entry.Value;
-            //_g.mDataPoints = new float[samples];
-       // }
+        //    //GraphItDataInternalLuaPro _g = entry.Value;
+        //    //_g.mDataPoints = new float[samples];
+        //}
 #endif
     }
 

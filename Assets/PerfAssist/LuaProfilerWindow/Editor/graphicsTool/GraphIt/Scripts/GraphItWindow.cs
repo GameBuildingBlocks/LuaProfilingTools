@@ -18,6 +18,9 @@ public class GraphItWindowLuaPro : EditorWindow
     public static int[] _PercentLimitValue = new int[] { 100, 20, 5 };
     public static int _PercentLimitSelectIndex = 0;
 
+    public static string[] _StartProfilerOption = new string[] { "开始分析", "结束分析"};
+    public static int _StartProfilerIndex = -1;
+
     static float x_offset = 5.0f;
     static float XStep = 4;
     public static float y_gap = 15.0f;
@@ -158,6 +161,8 @@ public class GraphItWindowLuaPro : EditorWindow
             int graph_index = 0;
 
             //use this to get the starting y position for the GL rendering
+            /*Rect find_y =*/ EditorGUILayout.BeginVertical(GUIStyle.none);
+            EditorGUILayout.EndVertical();
             float scrolled_y_pos = y_offset - mScrollPos.y;
             float scrolled_x_pos = x_offset - mScrollPos.x;
             if (Event.current.type == EventType.Repaint)
@@ -377,7 +382,7 @@ public class GraphItWindowLuaPro : EditorWindow
                                 {
                                     if (i >= 1)
                                     {
-                                        float value = g.mDataInfos[i - 1].GraphNum;
+                                        //float value = g.mDataInfos[i - 1].GraphNum;
                                         float interval = g.mDataInfos[i - 1].FrameInterval;
                                         int frameID = g.mDataInfos[i - 1].FrameID;
                                         float frameTime = g.mDataInfos[i - 1].FrameTime;
@@ -404,7 +409,7 @@ public class GraphItWindowLuaPro : EditorWindow
                                                 Color bg = Color.grey;
                                                 Handles.DrawSolidRectangleWithOutline(back, bg, bg);
 
-                                                string text = value.ToString(num_format);
+                                                //string text = value.ToString(num_format);
                                                 Rect tooltip_r = new Rect(position, size);
                                                 HoverText.normal.textColor = Color.white;
                                                 GUI.Label(tooltip_r, frameID.ToString(), HoverText);

@@ -11,12 +11,27 @@ public class HanoiUtil
     public static float FrameTimeOnPause = 0.0f;
 
 
+    static string[] GetSysDirector(string dir)
+    {
+        return System.IO.Directory.GetFileSystemEntries(dir);
+    }
+
+    public static  string[] GetProfilerFolders()
+    {
+        return GetSysDirector(Application.temporaryCachePath + "/" + Application.bundleIdentifier);
+    }
+
+    public static string[] GetProfilerFiles(string path)
+    {
+        return GetSysDirector(path);
+    }
+
 
     public static string[] SelectVaildJsonFolders(string[]  folders)
     {
         List<string> result= new List<string>(); 
         foreach(string folder in folders){
-            string[] filePaths = Lua.Instance.GetProfilerFiles(folder);
+            string[] filePaths = GetProfilerFiles(folder);
             if (filePaths.Length > 0)
             {
                 result.Add(folder);
@@ -28,7 +43,7 @@ public class HanoiUtil
 
     public static string[] GetVaildJsonFolders()
     {
-        return  SelectVaildJsonFolders(Lua.Instance.GetProfilerFolders());
+        return  SelectVaildJsonFolders(GetProfilerFolders());
     }
 
     public static void ForeachInParentChain(HanoiNode n, HanoiNodeAction act)

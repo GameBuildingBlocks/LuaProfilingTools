@@ -37,6 +37,9 @@ using UnityEngine;
          public static float m_detailScreenHeight = 0.0f;
          public static float m_detailScreenPosY = 0.0f;
 
+         const int START_PROFILER_BTN =0;
+         const int STOP_PROFILER_BTN =1;
+
          List<string> sessionMsgList = new List<string>();
          
          float  HanleSessionTime = 0.0f;
@@ -48,6 +51,14 @@ using UnityEngine;
 
          int _selectedJsonFileIndex = -1;
          string[] _JsonFilesPath = new string[] { };
+
+         public enum PlayModeState
+         {
+             Playing,
+             Paused,
+             Stop,
+             PlayingOrWillChangePlaymode
+         }
 
          public class SessionJsonObj
          {
@@ -108,7 +119,7 @@ using UnityEngine;
 
          static SessionJsonObj  sessionJsonObj  = new SessionJsonObj();
          
-         [MenuItem(PAEditorConst.MenuPath + "/LuaProfilerWindow")]
+         [MenuItem(PAEditorConst.MenuPath+"/LuaProfilerWindow")]
          static void Create()
          {
              //// Get existing open window or if none, make a new one:
@@ -143,8 +154,8 @@ using UnityEngine;
              //if ((Lua.Instance != null) && Lua.Instance.IsRegisterLuaProfilerCallback())
              //    Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
 
-             if ((Lua.Instance != null) && Lua.Instance.IsRegisterLuaProfilerCallback())
-                 Lua.Instance.SetFrameInfo();
+            //if ((Lua.Instance != null) && Lua.Instance.IsRegisterLuaProfilerCallback())
+            //     Lua.Instance.SetFrameInfo();
 
              doTranslationAnimation();
 
@@ -179,7 +190,19 @@ using UnityEngine;
              float delta = targetTranslationX - m_Translation.x;
              if (delta == 0)
                  return;
-             m_Translation.x = targetTranslationX;
+             if (Mathf.Abs(delta) < targetTranslationInterval)
+                 m_Translation.x = targetTranslationX;
+             else
+             {
+                 if (delta > 0)
+                 {
+                     m_Translation.x += targetTranslationInterval;
+                 }
+                 else
+                 {
+                     m_Translation.x -= targetTranslationInterval;
+                 }
+             }                   
              Repaint();
          }
 
@@ -191,18 +214,82 @@ using UnityEngine;
          }
 
          void OnDestroy() {
-              if (Lua.Instance.IsRegisterLuaProfilerCallback())
-                  Lua.Instance.UnRegisterLuaProfilerCallback();
+             stopProfiler();
+         }
+
+         void Awake()
+         {
+             registProfiler();
+             startProfiler();
          }
 
          public LuaProfilerWindow()
          {
-             refreshCheckJasonFilesUpadate();
+             //refreshCheckJasonFilesUpadate();
+             setPlayModeState();
+         }
+
+         private bool registProfiler()
+         {
+             if (!EditorApplication.isPlaying  || Lua.Instance.IsRegisterLuaProfilerCallback())
+                 return false;
+             reInitHanoiRoot();
+             Lua.Instance.RegisterLuaProfilerCallback(this.onSessionMessage);
+             return true;
+         }
+
+        private bool startProfiler()
+        {
+            if (!EditorApplication.isPlaying || !Lua.Instance.IsRegisterLuaProfilerCallback())
+                return false;
+
+            LuaU3DPerfAnalyzer2CS.StartLuaProfilerRecord();
+            GraphItWindowLuaPro._StartProfilerIndex = START_PROFILER_BTN;
+            return true;
+        }
+
+         private void setPlayModeState()
+         {
+             EditorApplication.playmodeStateChanged += () =>
+             {
+                 if (EditorApplication.isPlaying)
+                 {
+                     OnPlaymodeStateChanged(PlayModeState.Playing);
+                 }
+                 if (!EditorApplication.isPlaying)
+                 {
+                     OnPlaymodeStateChanged(PlayModeState.Stop);
+                 }
+             };
+         }
+
+         public void OnPlaymodeStateChanged(PlayModeState playModeState)
+         {
+             switch (playModeState)
+             {
+                 case PlayModeState.Playing:
+                     registProfiler();
+                     startProfiler();
+                     break;
+                 case PlayModeState.Stop:
+                     stopProfiler();
+                     break;
+             }    
+         }
+
+         private void stopProfiler()
+         {
+             if (Lua.Instance.IsRegisterLuaProfilerCallback())
+             {
+                 reInitHanoiRoot();
+                 //refreshCheckJasonFilesUpadate();
+                 Lua.Instance.UnRegisterLuaProfilerCallback();
+                 GraphItWindowLuaPro._StartProfilerIndex = STOP_PROFILER_BTN;
+             }
          }
 
          public void OnGUI()
          {
-             handleCommandEvent();
              CheckForResizing();
              Handles.BeginGUI();
              Handles.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(1, 1, 1));
@@ -240,7 +327,6 @@ using UnityEngine;
                  }
                  GUILayout.EndArea();
              }
-
              Handles.EndGUI();
          }
 
@@ -252,24 +338,6 @@ using UnityEngine;
              GraphItWindowLuaPro.MouseXOnPause = -1;
          }
 
-         private void handleCommandEvent()
-         {
-             if (Event.current.commandName.Equals("AppStarted"))
-             {
-                 if((Lua.Instance!=null) &&!Lua.Instance.IsRegisterLuaProfilerCallback())
-                 {
-                     reInitHanoiRoot();
-                     Lua.Instance.RegisterLuaProfilerCallback(this.onSessionMessage);
-                 }
-             }
-
-             if (Event.current.commandName.Equals("AppStoped"))
-             {
-                 refreshCheckJasonFilesUpadate();
-                 if (Lua.Instance.IsRegisterLuaProfilerCallback())
-                     Lua.Instance.UnRegisterLuaProfilerCallback();
-             }
-         }
          private void drawGUIElement()
          {
              GUILayout.BeginHorizontal();
@@ -292,8 +360,33 @@ using UnityEngine;
                      }
                  }
 
-                 GraphItWindowLuaPro._TimeLimitSelectIndex = GUI.SelectionGrid(new Rect(500, 0, 350, 20), GraphItWindowLuaPro._TimeLimitSelectIndex, GraphItWindowLuaPro._TimeLimitStrOption, GraphItWindowLuaPro._TimeLimitStrOption.Length);
-                 GraphItWindowLuaPro._PercentLimitSelectIndex = GUI.SelectionGrid(new Rect(950, 0, 300, 20), GraphItWindowLuaPro._PercentLimitSelectIndex, GraphItWindowLuaPro._PercentLimitStrOption, GraphItWindowLuaPro._PercentLimitStrOption.Length);
+                 GraphItWindowLuaPro._TimeLimitSelectIndex = GUI.SelectionGrid(new Rect(520, 0, 350, 20), GraphItWindowLuaPro._TimeLimitSelectIndex, GraphItWindowLuaPro._TimeLimitStrOption, GraphItWindowLuaPro._TimeLimitStrOption.Length);
+                 GraphItWindowLuaPro._PercentLimitSelectIndex = GUI.SelectionGrid(new Rect(900, 0, 300, 20), GraphItWindowLuaPro._PercentLimitSelectIndex, GraphItWindowLuaPro._PercentLimitStrOption, GraphItWindowLuaPro._PercentLimitStrOption.Length);
+                 int currentStartProfilerIndex= GUI.SelectionGrid(new Rect(1250, 0, 150, 20), GraphItWindowLuaPro._StartProfilerIndex, GraphItWindowLuaPro._StartProfilerOption, GraphItWindowLuaPro._StartProfilerOption.Length);
+                 if(currentStartProfilerIndex>=0 && currentStartProfilerIndex!=GraphItWindowLuaPro._StartProfilerIndex){
+                     if (currentStartProfilerIndex == START_PROFILER_BTN)
+                     {
+                         if (!registProfiler())
+                         {
+                             EditorUtility.DisplayDialog("Regist Profiler failed.", "[Hanoi] Regist Profiler failed.", "确认");
+                         }
+
+                         //开始分析
+                         if (!startProfiler())
+                         {
+                             EditorUtility.DisplayDialog("Start Profiler failed.","[Hanoi] Start Profiler failed.", "确认");
+                         }
+                         else {
+                             GraphItWindowLuaPro._StartProfilerIndex = currentStartProfilerIndex;
+                         }
+                     }
+
+                     if (currentStartProfilerIndex == STOP_PROFILER_BTN)
+                     {
+                         //结束分析
+                         stopProfiler();
+                     }
+                 }
              }
              GUILayout.EndHorizontal();
          }
@@ -334,12 +427,13 @@ using UnityEngine;
 
          private string getSessionsBySelectedIndex(string[] jsonFolders ,int selectedIndex)
          {
-             if (selectedIndex < 0) 
-                 return "";
-             string[] filePaths = Lua.Instance.GetProfilerFiles(jsonFolders[selectedIndex]);
-             if (filePaths.Length <= 0) 
-                 return "";
-             return filePaths[0];
+        /*if (selectedIndex < 0) 
+             return "";
+         string[] filePaths = Lua.Instance.GetProfilerFiles(jsonFolders[selectedIndex]);
+         if (filePaths.Length <= 0) 
+             return "";
+         return filePaths[0];*/
+        return "";
          }
 
          private void refreshCheckJasonFilesUpadate()
