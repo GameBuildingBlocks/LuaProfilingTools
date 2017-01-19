@@ -345,7 +345,7 @@ namespace SLua
 			}
 		}
 
-		public object this[int index]
+		public object this[long index]
 		{
 			get
 			{
@@ -660,7 +660,7 @@ end
 		{
 			if (L != IntPtr.Zero)
 			{
-				if (LuaState.main == this)
+				//if (LuaState.main == this)
 				{
 					Logger.Log("Finalizing Lua State.");
 					// be careful, if you close lua vm, make sure you don't use lua state again,
@@ -675,7 +675,8 @@ end
 					oldstate = null;
 					L = IntPtr.Zero;
 
-					LuaState.main = null;
+                    if (LuaState.main == this)
+                        LuaState.main = null;
 				}
 			}
 		}
@@ -1014,7 +1015,7 @@ end
 			return returnValue;
 		}
 
-		internal object getObject(int reference, int index)
+		internal object getObject(int reference, long index)
 		{
 			if (index >= 1)
 			{
@@ -1062,21 +1063,20 @@ end
 			LuaDLL.lua_settop(L, oldTop);
 		}
 
-		internal void setObject(int reference, int index, object o)
-		{
-			if (index >= 1)
-			{
-				int oldTop = LuaDLL.lua_gettop(L);
-				LuaDLL.lua_getref(L, reference);
-				LuaObject.pushVar(L, o);
-				LuaDLL.lua_rawseti(L, -2, index);
-				LuaDLL.lua_settop(L, oldTop);
-				return;
-			}
-			throw new IndexOutOfRangeException();
-		}
-
-		internal void setObject(int reference, object field, object o)
+        internal void setObject(int reference, long index, object o)
+        {
+            if (index >= 1)
+            {
+                int oldTop = LuaDLL.lua_gettop(L);
+                LuaDLL.lua_getref(L, reference);
+                LuaObject.pushVar(L, o);
+                LuaDLL.lua_rawseti(L, -2, index);
+                LuaDLL.lua_settop(L, oldTop);
+                return;
+            }
+            throw new IndexOutOfRangeException();
+        }
+        internal void setObject(int reference, object field, object o)
 		{
 			int oldTop = LuaDLL.lua_gettop(L);
 			LuaDLL.lua_getref(L, reference);

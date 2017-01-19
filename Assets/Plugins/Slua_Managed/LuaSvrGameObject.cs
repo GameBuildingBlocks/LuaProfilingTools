@@ -34,7 +34,6 @@ namespace SLua
 
 	public class LuaSvrGameObject : MonoBehaviour
 	{
-
 		public LuaState state;
 		public Action onUpdate;
 
@@ -48,18 +47,17 @@ namespace SLua
 			}
 		}
 
-		public void init() {
-			
+		public void init()
+		{
 		}
-
 
 		void Update()
 		{
-			if (onUpdate != null) onUpdate();
+			if (onUpdate == null)
+				return;
 
+			onUpdate();
 		}
-
-		
 	}
 }
 #endif

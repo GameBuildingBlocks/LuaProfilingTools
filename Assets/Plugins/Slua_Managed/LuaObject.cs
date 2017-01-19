@@ -1060,25 +1060,25 @@ return index
 				return ta!=null;
 			}
 		}
-        static object[][] _cacheArrays;
+        //static object[][] _cacheArrays;
         
         static public object[] getObjectArrayByCount(int count)
         {
             return new object[count];
             //下面的优化有bug，外部有可能保留了数组的引用（例如闭包）。先保留原设计，
 
-            if (_cacheArrays == null)
-                _cacheArrays = new object[20][];
-            while (count >= _cacheArrays.Length)
-            {
-                object[][] temp = new object[_cacheArrays.Length * 2][];
-                Array.Copy(_cacheArrays, temp, _cacheArrays.Length);
-                _cacheArrays = temp;
-            }//理论上不会触发多次循环。甚至不会触发这段代码。
+            //if (_cacheArrays == null)
+            //    _cacheArrays = new object[20][];
+            //while (count >= _cacheArrays.Length)
+            //{
+            //    object[][] temp = new object[_cacheArrays.Length * 2][];
+            //    Array.Copy(_cacheArrays, temp, _cacheArrays.Length);
+            //    _cacheArrays = temp;
+            //}//理论上不会触发多次循环。甚至不会触发这段代码。
 
-            if (_cacheArrays[count] == null)
-                _cacheArrays[count] = new object[count];
-            return _cacheArrays[count];
+            //if (_cacheArrays[count] == null)
+            //    _cacheArrays[count] = new object[count];
+            //return _cacheArrays[count];
         }
         static public bool checkCacheParams<T>(IntPtr l, int p, out T[] pars) where T : class
         {

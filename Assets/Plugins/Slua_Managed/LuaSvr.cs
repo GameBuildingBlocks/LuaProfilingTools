@@ -240,6 +240,15 @@ namespace SLua
 //#endif
         }
 
+		public void uninit()
+		{
+			SimpleLogger.DEBUG("LuaSvr", "uninit start");
+
+			luaState.Close();
+
+			SimpleLogger.DEBUG("LuaSvr", "uninit end");
+		}
+
 		public object start(string main)
 		{
 			if (main != null)

@@ -42,7 +42,7 @@ namespace SLua{
 #endif
     {
 
-		public EOL eol = EOL.Native;
+		public EOL eol = EOL.LF;
 		public bool exportExtensionMethod = true;
 		public string UnityEngineGeneratePath = "Assets/Slua/LuaObject/";
 
