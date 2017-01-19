@@ -264,8 +264,7 @@ using UnityEngine;
                      NetManager.Instance.Disconnect();
                  }
 
-                 GUI.enabled = saveState;
-
+                 GUI.enabled = !NetManager.Instance.IsConnected;
                  if (GUILayout.Button("Loadfile", GUILayout.Width(70)))
                  {
                      string path = EditorUtility.OpenFilePanel("Open a lua_perf json",LuaProfilerSessionsPath, "json");
@@ -279,6 +278,8 @@ using UnityEngine;
                              EditorUtility.DisplayDialog("Warning!", "[Hanoi] Please Disconnect First", "Confim");
                      }
                  }
+
+                 GUI.enabled = saveState;
 
                  if (GUILayout.Button("Open Dir", GUILayout.MaxWidth(80)))
                  {
