@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using SLua;
 using UnityEngine.UI;
@@ -13,15 +13,22 @@ public class Main : MonoBehaviour
     public Button mButtonStop;
     public Button mButtonFrame;
     public bool isStarted = false;
+
+    public bool LogRemotely = true;
+    public bool LogIntoFile = false;
+    public bool InGameGui = false;
+
+    private UsMain _usmooth;
     // Use this for initialization
     void Start()
 	{
+        _usmooth = new UsMain(LogRemotely, LogIntoFile, InGameGui);
+
 #if UNITY_5
 		Application.logMessageReceived += this.log;
 #else
 		Application.RegisterLogCallback(this.log);
 #endif
-
 		Lua.Instance.InitLuaProfiler();
     }
 
@@ -35,6 +42,12 @@ public class Main : MonoBehaviour
 	{
 		progress = p;
 	}
+
+    void OnLevelWasLoaded()
+    {
+        if (_usmooth != null)
+            _usmooth.OnLevelWasLoaded();
+    }
 
 	void complete()
 	{
@@ -52,19 +65,23 @@ public class Main : MonoBehaviour
     {
         if (isStarted)
             Lua.Instance.SetFrameInfo();
+        if (_usmooth != null)
+            _usmooth.Update();
     }
 
 	void OnGUI()
 	{
 		if(progress!=100)
 			GUI.Label(new Rect(0, 0, 100, 50), string.Format("Loading {0}%", progress));
+        if (_usmooth != null)
+            _usmooth.OnGUI();
     }
 
     public void onClickStart()
     {
         isStarted = true;
         Lua.Instance.StartLuaProfiler();
-        Lua.Instance.m_LuaSvr.start("main");
+        
     }
 
     public void onClickStop()
@@ -77,8 +94,8 @@ public class Main : MonoBehaviour
     {
         if(isStarted)
         {
-            object o = Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
-            //Lua.Instance.SetFrameInfo();
+            Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
+            Lua.Instance.SetFrameInfo();
         }
     }
 
@@ -110,6 +127,8 @@ public class Main : MonoBehaviour
     void OnDestroy()
     {
         onClickStop();
+        if (_usmooth != null)
+            _usmooth.Dispose();
     }
 
     public void onClickLuaCallCSharp()
@@ -119,5 +138,4 @@ public class Main : MonoBehaviour
             Lua.Instance.m_LuaSvr.luaState.getFunction("test").call();
         }
     }
-
 }

@@ -1,5 +1,6 @@
-Ôªøusing System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading;
 using UnityEditor;
@@ -22,7 +23,6 @@ using UnityEngine;
          MouseInArea m_mouseArea = MouseInArea.none;
 
          float targetTranslationX = 0;
-         float targetTranslationInterval = 0;
          float viewPointToGlobalTimeMarin = 10;
 
          public static float m_winWidth = 0.0f;
@@ -37,9 +37,6 @@ using UnityEngine;
          public static float m_detailScreenHeight = 0.0f;
          public static float m_detailScreenPosY = 0.0f;
 
-         const int START_PROFILER_BTN =0;
-         const int STOP_PROFILER_BTN =1;
-
          List<string> sessionMsgList = new List<string>();
          
          float  HanleSessionTime = 0.0f;
@@ -49,84 +46,54 @@ using UnityEngine;
 
          public bool m_isTestCallLua = false;
 
-         int _selectedJsonFileIndex = -1;
-         string[] _JsonFilesPath = new string[] { };
-
-         public enum PlayModeState
-         {
-             Playing,
-             Paused,
-             Stop,
-             PlayingOrWillChangePlaymode
-         }
-
-         public class SessionJsonObj
-         {
-             public bool readerFlag = false;
-             public ResovleSessionJsonResult m_resovleSessionResult;
-             public ResovleSessionJsonResult readResovleJsonResult()
-             {
-                 if (m_resovleSessionResult == null)
-                     return null;
-                 lock (this)  
-                 {
-                     if (!readerFlag)
-                     {          
-                         try
-                         {
-                             Monitor.Wait(this);
-                         }
-                         catch (SynchronizationLockException e)
-                         {
-                             Console.WriteLine(e);
-                         }
-                         catch (ThreadInterruptedException e)
-                         {
-                             Console.WriteLine(e);
-                         }
-                     }
-                     readerFlag = false;   
-                     Monitor.Pulse(this);   
-                 }
-                 return m_resovleSessionResult;
-             }
-
-             public void writeResovleJsonResult(ResovleSessionJsonResult resovleJsonResult)
-             {
-                 lock (this)  
-                 {
-                     if (readerFlag)
-                     {      
-                         try
-                         {
-                             Monitor.Wait(this);  
-                         }
-                         catch (SynchronizationLockException e)
-                         {
-                             Console.WriteLine(e);
-                         }
-                         catch (ThreadInterruptedException e)
-                         {
-                             Console.WriteLine(e);
-                         }
-                     }
-                     m_resovleSessionResult = resovleJsonResult;
-                     readerFlag = true;  
-                     Monitor.Pulse(this); 
-                 } 
-             }
-         }
-
          static SessionJsonObj  sessionJsonObj  = new SessionJsonObj();
-         
-         [MenuItem(PAEditorConst.MenuPath+"/LuaProfilerWindow")]
+
+         const string ipDefaultTextField = "<ip>";
+         [SerializeField]
+         string lastLoginIP = ipDefaultTextField;
+         static string LuaProfilerSessionsPath = Path.Combine(Application.temporaryCachePath, "LuaProfilerSessions");
+        
+         [MenuItem(PAEditorConst.MenuPath + "/LuaProfilerWindow")]
          static void Create()
          {
              //// Get existing open window or if none, make a new one:
-                LuaProfilerWindow m_window = (LuaProfilerWindow)EditorWindow.GetWindow(typeof(LuaProfilerWindow));
+                 LuaProfilerWindow m_window = (LuaProfilerWindow)EditorWindow.GetWindow(typeof(LuaProfilerWindow));
                  m_window.Show();
                  m_window.wantsMouseMove = true;
                  m_window.CheckForResizing();
+         }
+
+         void OnEnable()
+         {
+             var savedProfilerIP = EditorPrefs.GetString("ConnectIP");
+             if (!string.IsNullOrEmpty(savedProfilerIP))
+             {
+                 lastLoginIP = savedProfilerIP;
+             }
+
+             if (PANetDrv.Instance == null)
+             {
+                 PANetDrv.Instance = new PANetDrv();
+
+                 NetManager.Instance.RegisterCmdHandler(eNetCmd.SV_SendLuaProfilerMsg, NetHandle_SendLuaProfilerMsg);
+                 NetManager.Instance.RegisterCmdHandler(eNetCmd.SV_StartLuaProfilerMsg, NetHandle_StartLuaProfilerMsg);
+             }
+             ClearHanoiRoot();
+         }
+         
+
+         public bool NetHandle_StartLuaProfilerMsg(eNetCmd cmd, UsCmd c)
+         {
+             return true;
+         }
+
+
+         public bool NetHandle_SendLuaProfilerMsg(eNetCmd cmd, UsCmd c)
+         {
+             string data = c.ReadString();
+             if (!string.IsNullOrEmpty(data))
+                sessionMsgList.Add(data);
+             return true;
          }
 
          public void handleMsgAsyn(object o)
@@ -151,15 +118,8 @@ using UnityEngine;
 
          void Update()
          {
-             //if ((Lua.Instance != null) && Lua.Instance.IsRegisterLuaProfilerCallback())
-             //    Lua.Instance.m_LuaSvr.luaState.getFunction("foo").call(1, 2, 3);
-
-            //if ((Lua.Instance != null) && Lua.Instance.IsRegisterLuaProfilerCallback())
-            //     Lua.Instance.SetFrameInfo();
-
              doTranslationAnimation();
 
-             
              if (m_data != null &&sessionMsgList.Count>0 &&Time.realtimeSinceStartup - HanleSessionTime >= 1.0f)
              {
                 HanleSessionTime = Time.realtimeSinceStartup;
@@ -190,19 +150,7 @@ using UnityEngine;
              float delta = targetTranslationX - m_Translation.x;
              if (delta == 0)
                  return;
-             if (Mathf.Abs(delta) < targetTranslationInterval)
-                 m_Translation.x = targetTranslationX;
-             else
-             {
-                 if (delta > 0)
-                 {
-                     m_Translation.x += targetTranslationInterval;
-                 }
-                 else
-                 {
-                     m_Translation.x -= targetTranslationInterval;
-                 }
-             }                   
+             m_Translation.x = targetTranslationX;
              Repaint();
          }
 
@@ -214,78 +162,15 @@ using UnityEngine;
          }
 
          void OnDestroy() {
-             stopProfiler();
-         }
-
-         void Awake()
-         {
-             registProfiler();
-             startProfiler();
+             if (PANetDrv.Instance != null)
+             {
+                 PANetDrv.Instance.Dispose();
+                 PANetDrv.Instance = null;
+             }
          }
 
          public LuaProfilerWindow()
          {
-             //refreshCheckJasonFilesUpadate();
-             setPlayModeState();
-         }
-
-         private bool registProfiler()
-         {
-             if (!EditorApplication.isPlaying  || Lua.Instance.IsRegisterLuaProfilerCallback())
-                 return false;
-             reInitHanoiRoot();
-             Lua.Instance.RegisterLuaProfilerCallback(this.onSessionMessage);
-             return true;
-         }
-
-        private bool startProfiler()
-        {
-            if (!EditorApplication.isPlaying || !Lua.Instance.IsRegisterLuaProfilerCallback())
-                return false;
-
-            LuaU3DPerfAnalyzer2CS.StartLuaProfilerRecord();
-            GraphItWindowLuaPro._StartProfilerIndex = START_PROFILER_BTN;
-            return true;
-        }
-
-         private void setPlayModeState()
-         {
-             EditorApplication.playmodeStateChanged += () =>
-             {
-                 if (EditorApplication.isPlaying)
-                 {
-                     OnPlaymodeStateChanged(PlayModeState.Playing);
-                 }
-                 if (!EditorApplication.isPlaying)
-                 {
-                     OnPlaymodeStateChanged(PlayModeState.Stop);
-                 }
-             };
-         }
-
-         public void OnPlaymodeStateChanged(PlayModeState playModeState)
-         {
-             switch (playModeState)
-             {
-                 case PlayModeState.Playing:
-                     registProfiler();
-                     startProfiler();
-                     break;
-                 case PlayModeState.Stop:
-                     stopProfiler();
-                     break;
-             }    
-         }
-
-         private void stopProfiler()
-         {
-             if (Lua.Instance.IsRegisterLuaProfilerCallback())
-             {
-                 reInitHanoiRoot();
-                 //refreshCheckJasonFilesUpadate();
-                 Lua.Instance.UnRegisterLuaProfilerCallback();
-                 GraphItWindowLuaPro._StartProfilerIndex = STOP_PROFILER_BTN;
-             }
          }
 
          public void OnGUI()
@@ -293,14 +178,14 @@ using UnityEngine;
              CheckForResizing();
              Handles.BeginGUI();
              Handles.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(1, 1, 1));
-             //controlÁ™óÂè£ÂÜÖÂÆπ
+             //control¥∞ø⁄ƒ⁄»›
              GUILayout.BeginArea(new Rect(0, m_controlScreenPosY, m_winWidth, m_controlScreenHeight));
              {
                  drawGUIElement();
              }
              GUILayout.EndArea();
 
-             //navigationÁ™óÂè£ÂÜÖÂÆπ
+             //navigation¥∞ø⁄ƒ⁄»›
              GUILayout.BeginArea(new Rect(0, m_navigationScreenPosY, m_winWidth, m_navigationScreenHeight));
              {
                  if (m_data.isHanoiDataHasContent())
@@ -311,7 +196,7 @@ using UnityEngine;
              if (m_data.isHanoiDataLoadSucc() && (EditorWindow.focusedWindow == this))
              {
                  CheckForInput();
-                 //detailÁ™óÂè£ÂÜÖÂÆπ
+                 //detail¥∞ø⁄ƒ⁄»›
                  GUILayout.BeginArea(new Rect(0, m_detailScreenPosY, m_winWidth, m_detailScreenHeight));
                  {
                      Handles.matrix = Matrix4x4.TRS(m_Translation, Quaternion.identity, new Vector3(m_Scale.x, m_Scale.y, 1));
@@ -327,14 +212,14 @@ using UnityEngine;
                  }
                  GUILayout.EndArea();
              }
+
              Handles.EndGUI();
          }
 
-         private void reInitHanoiRoot() {
+         private void ClearHanoiRoot() {
              GraphItLuaPro.Clear();
              m_data.m_hanoiData = new HanoiRoot();
              m_data.Root.callStats = new HanoiNode(null);
-             _selectedJsonFileIndex = _JsonFilesPath.Length - 1;
              GraphItWindowLuaPro.MouseXOnPause = -1;
          }
 
@@ -342,81 +227,73 @@ using UnityEngine;
          {
              GUILayout.BeginHorizontal();
              {
-                 GUILayout.MaxWidth(150);
-                 GUI.color = Color.white;
-                 Handles.color = Color.white;
-                 EditorGUIUtility.labelWidth = 80;
-                 int currentSelectedIndex = EditorGUILayout.Popup(string.Format("Sessions"), _selectedJsonFileIndex, _JsonFilesPath, GUILayout.Width(350));
-                 _selectedJsonFileIndex = currentSelectedIndex;
-                 if (GUILayout.Button("Load", GUILayout.Width(50)))
-                     loadSelectedSessions(currentSelectedIndex);
+                 GUILayout.Label("IP:", GUILayout.Width(20));
 
-                 if (GUILayout.Button("Loadfile", GUILayout.Width(90)))
+                 GUI.SetNextControlName("LoginIPTextField");
+                 var currentStr = GUILayout.TextField(lastLoginIP, GUILayout.Width(70));
+                 if (!lastLoginIP.Equals(currentStr))
                  {
-                     string path = EditorUtility.OpenFilePanel("Open a lua_perf json", "", "json");
+                     lastLoginIP = currentStr;
+                 }
+
+                 if (GUI.GetNameOfFocusedControl().Equals("LoginIPTextField") && lastLoginIP.Equals(ipDefaultTextField))
+                 {
+                     lastLoginIP = "";
+                 }
+
+                 var saveState = GUI.enabled;
+                 GUI.enabled = !NetManager.Instance.IsConnected;
+
+                 if (GUILayout.Button("Connect", GUILayout.MaxWidth(80)))
+                 {
+                     if (!NetManager.Instance.Connect(lastLoginIP))
+                     {
+                         Debug.LogError("connecting failed.");
+                     }
+                     else
+                     {
+                         ClearHanoiRoot();
+                         EditorPrefs.SetString("ConnectIP", lastLoginIP);
+                     }
+                 }
+
+                 GUI.enabled = NetManager.Instance.IsConnected;
+
+                 if (GUILayout.Button("Disconnect", GUILayout.MaxWidth(80)))
+                 {
+                     NetManager.Instance.Disconnect();
+                 }
+
+                 GUI.enabled = saveState;
+
+                 if (GUILayout.Button("Loadfile", GUILayout.Width(70)))
+                 {
+                     string path = EditorUtility.OpenFilePanel("Open a lua_perf json",LuaProfilerSessionsPath, "json");
                      if (path.Length != 0)
                      {
-                         loadSession(path);
+                         if (!NetManager.Instance.IsConnected)
+                         {
+                             loadSession(path);
+                         }
+                         else
+                             EditorUtility.DisplayDialog("Warning!", "[Hanoi] Please Disconnect First", "Confim");
                      }
                  }
 
-                 GraphItWindowLuaPro._TimeLimitSelectIndex = GUI.SelectionGrid(new Rect(520, 0, 350, 20), GraphItWindowLuaPro._TimeLimitSelectIndex, GraphItWindowLuaPro._TimeLimitStrOption, GraphItWindowLuaPro._TimeLimitStrOption.Length);
-                 GraphItWindowLuaPro._PercentLimitSelectIndex = GUI.SelectionGrid(new Rect(900, 0, 300, 20), GraphItWindowLuaPro._PercentLimitSelectIndex, GraphItWindowLuaPro._PercentLimitStrOption, GraphItWindowLuaPro._PercentLimitStrOption.Length);
-                 int currentStartProfilerIndex= GUI.SelectionGrid(new Rect(1250, 0, 150, 20), GraphItWindowLuaPro._StartProfilerIndex, GraphItWindowLuaPro._StartProfilerOption, GraphItWindowLuaPro._StartProfilerOption.Length);
-                 if(currentStartProfilerIndex>=0 && currentStartProfilerIndex!=GraphItWindowLuaPro._StartProfilerIndex){
-                     if (currentStartProfilerIndex == START_PROFILER_BTN)
-                     {
-                         if (!registProfiler())
-                         {
-                             EditorUtility.DisplayDialog("Regist Profiler failed.", "[Hanoi] Regist Profiler failed.", "Á°ÆËÆ§");
-                         }
-
-                         //ÂºÄÂßãÂàÜÊûê
-                         if (!startProfiler())
-                         {
-                             EditorUtility.DisplayDialog("Start Profiler failed.","[Hanoi] Start Profiler failed.", "Á°ÆËÆ§");
-                         }
-                         else {
-                             GraphItWindowLuaPro._StartProfilerIndex = currentStartProfilerIndex;
-                         }
-                     }
-
-                     if (currentStartProfilerIndex == STOP_PROFILER_BTN)
-                     {
-                         //ÁªìÊùüÂàÜÊûê
-                         stopProfiler();
-                     }
+                 if (GUILayout.Button("Open Dir", GUILayout.MaxWidth(80)))
+                 {
+                     EditorUtility.RevealInFinder(LuaProfilerSessionsPath);
                  }
+
+                  GraphItWindowLuaPro._TimeLimitSelectIndex = GUI.SelectionGrid(new Rect(600, 0, 350, 20), GraphItWindowLuaPro._TimeLimitSelectIndex, GraphItWindowLuaPro._TimeLimitStrOption, GraphItWindowLuaPro._TimeLimitStrOption.Length);
+                  GraphItWindowLuaPro._PercentLimitSelectIndex = GUI.SelectionGrid(new Rect(1000, 0, 300, 20), GraphItWindowLuaPro._PercentLimitSelectIndex, GraphItWindowLuaPro._PercentLimitStrOption, GraphItWindowLuaPro._PercentLimitStrOption.Length);
              }
              GUILayout.EndHorizontal();
          }
 
-         private void loadSelectedSessions(int currentSelectedIndex)
-         {
-             try
-             {
-                 if (currentSelectedIndex < 0)
-                     throw new System.ArgumentException(string.Format("invalid selected index ({0}). ", currentSelectedIndex));
-
-                 if (currentSelectedIndex == _JsonFilesPath.Length - 1)
-                 {
-                     reInitHanoiRoot();
-                     return;
-                 }
-
-                 string file = getSessionsBySelectedIndex(HanoiUtil.GetVaildJsonFolders(), currentSelectedIndex);
-                 loadSession(file);
-             }
-             catch (System.Exception ex)
-             {
-                 _selectedJsonFileIndex = -1;
-                 Debug.LogErrorFormat("[Hanoi] Loading session failed. ({0})", ex.Message);
-                 EditorUtility.DisplayDialog("load sessions error", string.Format("[Hanoi] Loading session failed. ({0})", ex.Message), "Á°ÆËÆ§");
-             }
-         }
-
          private void loadSession(string file)
          {
+             ClearHanoiRoot();
              if (!loadJsonData(file))
                  throw new System.ArgumentException(string.Format("loading file `{0}` failed. ", file));
 
@@ -425,41 +302,8 @@ using UnityEngine;
          }
 
 
-         private string getSessionsBySelectedIndex(string[] jsonFolders ,int selectedIndex)
-         {
-        /*if (selectedIndex < 0) 
-             return "";
-         string[] filePaths = Lua.Instance.GetProfilerFiles(jsonFolders[selectedIndex]);
-         if (filePaths.Length <= 0) 
-             return "";
-         return filePaths[0];*/
-        return "";
-         }
-
-         private void refreshCheckJasonFilesUpadate()
-        {
-            try
-            {
-                string[] files =  HanoiUtil.GetVaildJsonFolders();
-                for (int i = 0; i < files.Length; i++)
-                {
-                    int begin = files[i].LastIndexOfAny(new char[] { '\\', '/' });
-                    if (begin != -1)
-                    {
-                        files[i] = files[i].Substring(begin + 1);
-                    }
-                }
-                _JsonFilesPath = files;
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogException(ex);
-                _JsonFilesPath = new string[] { };
-            }
-        }
-
          /// <summary>
-         /// ËÆ°ÁÆóÂ±èÂπïÂâ™Ë£ÅÁöÑÊó∂Èó¥ËåÉÂõ¥
+         /// º∆À„∆¡ƒªºÙ≤√µƒ ±º‰∑∂Œß
          /// </summary>
          public void calculateScreenClipRange()
          {
@@ -474,7 +318,7 @@ using UnityEngine;
          }
 
          /// <summary>
-         /// Èº†Ê†áÊóÅÊòæÁ§∫ÂÖ®Â±ÄÊó∂Èó¥
+         ///  Û±Í≈‘œ‘ æ»´æ÷ ±º‰
          /// </summary>
          private void showMouseGlobalTime() {
              float globalTimeLabelHight = m_detailScreenHeight / 10;
@@ -528,7 +372,7 @@ using UnityEngine;
          }
 
          /// <summary>
-         ///  Ëé∑ÂæóÂ∏ßÈó¥Êó∂Èó¥ÁöÑÊòæÁ§∫Èó¥Èöî
+         ///  ªÒµ√÷°º‰ ±º‰µƒœ‘ æº‰∏Ù
          /// </summary>
          private float getTimeInterval(float x0, float x1) {
              float screenClipDelta = x1 - x0;
@@ -620,15 +464,12 @@ using UnityEngine;
          }
 
          /// <summary>
-         /// Â∞ÜÂ±èÂπï‰∏≠ÂøÉÁßªÂä®Âà∞ÁªôÂÆöÁöÑÊó∂Èó¥‰∏ä
+         /// Ω´∆¡ƒª÷––ƒ“∆∂ØµΩ∏¯∂®µƒ ±º‰…œ
          /// </summary>
          public void setViewPointToGlobalTime(float globalTime,float interval,float mouseX) {
              m_Scale.x = (m_winWidth - viewPointToGlobalTimeMarin*2) / interval;
              float viewMidValue = Mathf.Abs(DrawingToViewTransformVector(new Vector2(globalTime, 0)).x);
              targetTranslationX = (m_winWidth - viewPointToGlobalTimeMarin) - viewMidValue;
-
-             float delta = targetTranslationX - m_Translation.x;
-             targetTranslationInterval = Mathf.Abs(delta) / 30;
          }
 
          private void CheckForInput()
@@ -736,5 +577,62 @@ using UnityEngine;
              }
              return null;
          }
+
+         public class SessionJsonObj
+         {
+             public bool readerFlag = false;
+             public ResovleSessionJsonResult m_resovleSessionResult;
+             public ResovleSessionJsonResult readResovleJsonResult()
+             {
+                 if (m_resovleSessionResult == null)
+                     return null;
+                 lock (this)
+                 {
+                     if (!readerFlag)
+                     {
+                         try
+                         {
+                             Monitor.Wait(this);
+                         }
+                         catch (SynchronizationLockException e)
+                         {
+                             Console.WriteLine(e);
+                         }
+                         catch (ThreadInterruptedException e)
+                         {
+                             Console.WriteLine(e);
+                         }
+                     }
+                     readerFlag = false;
+                     Monitor.Pulse(this);
+                 }
+                 return m_resovleSessionResult;
+             }
+             public void writeResovleJsonResult(ResovleSessionJsonResult resovleJsonResult)
+             {
+                 lock (this)
+                 {
+                     if (readerFlag)
+                     {
+                         try
+                         {
+                             Monitor.Wait(this);
+                         }
+                         catch (SynchronizationLockException e)
+                         {
+                             Console.WriteLine(e);
+                         }
+                         catch (ThreadInterruptedException e)
+                         {
+                             Console.WriteLine(e);
+                         }
+                     }
+                     m_resovleSessionResult = resovleJsonResult;
+                     readerFlag = true;
+                     Monitor.Pulse(this);
+                 }
+             }
+         }
+
      }
  

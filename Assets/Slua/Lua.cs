@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using SLua;
 using LuaInterface;
@@ -12,17 +12,14 @@ using UnityEditor;
 [SLua.CustomLuaClass]
 public class Lua
 {
-    //public const string g_editorWindow = "LuaProfilerEditorWindow";
-    public const string g_editorWindow = "VisualizerWindow";
+    public const string g_editorWindow = "LuaProfilerWindow";
     private static Lua m_Instance = null;
 
-    public delegate void OnLuaMessage(string data);
-    private OnLuaMessage _onluaMessage = null;
-
-
     public LuaSvr m_LuaSvr = null;
-    private string m_strPath = Application.temporaryCachePath;
+    private string m_luaProfilerSessionsPath = Path.Combine(Application.temporaryCachePath,"LuaProfilerSessions");
     private string m_strTime = Application.bundleIdentifier + "." + System.DateTime.Now.Year.ToString() + "-" + System.DateTime.Now.Month.ToString() + "-" + System.DateTime.Now.Day.ToString() + "-" + System.DateTime.Now.Hour.ToString() + "-" + System.DateTime.Now.Minute.ToString() + "-" + System.DateTime.Now.Second.ToString();
+
+    bool _networkAvailable = false;
     public static Lua Instance
     {
         get
@@ -38,78 +35,67 @@ public class Lua
 
     public static void OnMessage(string data)
     {
-        if (m_Instance._onluaMessage != null)
+        Debug.Assert(Instance != null);
+        if (Instance == null)
+            return;
+
+        Debug.Assert(!string.IsNullOrEmpty(data));
+        if (string.IsNullOrEmpty(data))
+            return;
+
+        if (Instance._networkAvailable)
         {
-            m_Instance._onluaMessage(data);
+            UsCmd cmd = new UsCmd();
+            cmd.WriteInt16((short)eNetCmd.SV_SendLuaProfilerMsg);
+            cmd.WriteString(data);
+            UsNet.Instance.SendCommand(cmd);
         }
-        //Debug.Log(msg);
     }
-
-    public void SetLuaCallback()
-    {
-        LuaDLL.register_callback(OnMessage);
-    }
-
-
 
     public void InitLuaProfiler()
     {
         m_LuaSvr = new LuaSvr();
         m_LuaSvr.init(null, null, LuaSvrFlag.LSF_BASIC);
+        m_LuaSvr.start("main");
+
         LuaDLL.init_profiler(m_LuaSvr.luaState.L);
-        Debug.Log(m_strPath);
-        m_strPath = m_strPath + "/" + m_strTime;
-        Debug.Log(m_strPath);
-        DirectoryInfo myDirectoryInfo = new DirectoryInfo(m_strPath);
-        if (!myDirectoryInfo.Exists)
-        {
-            Directory.CreateDirectory(m_strPath);
-        }
+        m_luaProfilerSessionsPath = Path.Combine(m_luaProfilerSessionsPath,m_strTime);
+        Debug.Log(m_luaProfilerSessionsPath);
     }
     
     public void StartLuaProfiler()
     {
-        string file = m_strPath + "/" + m_strTime + ".json";
-        object o = m_LuaSvr.luaState.getFunction("profiler_start").call(file);
-#if UNITY_EDITOR
-        EditorWindow w = EditorWindow.GetWindow<EditorWindow>(g_editorWindow);
-        if (w.GetType().Name == g_editorWindow)
+        DirectoryInfo myDirectoryInfo = new DirectoryInfo(m_luaProfilerSessionsPath);
+        if (!myDirectoryInfo.Exists)
         {
-            w.SendEvent(EditorGUIUtility.CommandEvent("AppStarted"));
+            Directory.CreateDirectory(m_luaProfilerSessionsPath);
         }
-#endif
-#if UNITY_EDITOR
-        if (LuaDLL.isregister_callback() == false)
-            Debug.LogError("no register callback");
-#endif
+        string file = Path.Combine(m_luaProfilerSessionsPath, m_strTime + ".json");
+        m_LuaSvr.luaState.getFunction("profiler_start").call(file);
+
+        if (!LuaDLL.isregister_callback())
+            LuaDLL.register_callback(OnMessage);
+
+        _networkAvailable = UsNet.Instance != null && UsNet.Instance.IsListening;
+        if (_networkAvailable)
+        {
+            UsCmd cmd = new UsCmd();
+            cmd.WriteInt16((short)eNetCmd.SV_StartLuaProfilerMsg);
+            UsNet.Instance.SendCommand(cmd);
+        }
     }
 
     public void StopLuaProfiler()
     {
-        object o = m_LuaSvr.luaState.getFunction("profiler_stop").call();
-#if UNITY_EDITOR
-        EditorWindow w = EditorWindow.GetWindow<EditorWindow>(g_editorWindow);
-        if (w.GetType().Name == g_editorWindow)
-        {
-            w.SendEvent(EditorGUIUtility.CommandEvent("AppStoped"));
-        }
-#endif
+        m_LuaSvr.luaState.getFunction("profiler_stop").call();
+        UnRegisterLuaProfilerCallback();
     }
 
-public bool IsRegisterLuaProfilerCallback()
+    public bool IsRegisterLuaProfilerCallback()
     {
         return LuaDLL.isregister_callback();
     }
 
-    public void RegisterLuaProfilerCallback(OnLuaMessage  callback)
-    {
-        //LuaDLL.register_callback(callback);
-        if (callback != null)
-            _onluaMessage = callback;
-        else
-            Debug.LogError("callback can't null");
-        SetLuaCallback();
-    }
 
     public void RegisterLuaProfilerCallback2(string obj,string method)
     {
@@ -148,4 +134,3 @@ public bool IsRegisterLuaProfilerCallback()
         return (int)(time - startTime).TotalSeconds;
     }
 }
-

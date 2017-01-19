@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,9 +17,6 @@ public class GraphItWindowLuaPro : EditorWindow
     public static string[] _PercentLimitStrOption = new string[] { "100%", "20%", "5%" };
     public static int[] _PercentLimitValue = new int[] { 100, 20, 5 };
     public static int _PercentLimitSelectIndex = 0;
-
-    public static string[] _StartProfilerOption = new string[] { "开始分析", "结束分析"};
-    public static int _StartProfilerIndex = -1;
 
     static float x_offset = 5.0f;
     static float XStep = 4;
