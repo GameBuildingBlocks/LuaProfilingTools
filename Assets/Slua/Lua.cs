@@ -87,7 +87,8 @@ public class Lua
 
     public void StopLuaProfiler()
     {
-        m_LuaSvr.luaState.getFunction("profiler_stop").call();
+        if (m_LuaSvr!=null && m_LuaSvr.luaState != null)
+            m_LuaSvr.luaState.getFunction("profiler_stop").call();
         UnRegisterLuaProfilerCallback();
     }
 
