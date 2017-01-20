@@ -252,7 +252,6 @@ public class HanoiData
     public int MaxStackLevel { get { return m_maxStackLevel; } }
     public int m_maxStackLevel = 0;
 
-    JSONObject m_json;
     public HanoiRoot m_hanoiData;
 
     public static string GRAPH_TIMECONSUMING = "timeConsuming";
