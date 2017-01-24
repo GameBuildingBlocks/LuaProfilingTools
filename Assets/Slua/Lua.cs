@@ -12,7 +12,6 @@ using UnityEditor;
 [SLua.CustomLuaClass]
 public class Lua
 {
-    public const string g_editorWindow = "LuaProfilerWindow";
     private static Lua m_Instance = null;
 
     public LuaSvr m_LuaSvr = null;

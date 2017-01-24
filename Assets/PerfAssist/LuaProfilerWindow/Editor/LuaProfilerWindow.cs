@@ -63,7 +63,8 @@ using UnityEngine;
                  m_window.CheckForResizing();
          }
 
-         void OnEnable()
+
+         void InitNet()
          {
              var savedProfilerIP = EditorPrefs.GetString("ConnectIP");
              if (!string.IsNullOrEmpty(savedProfilerIP))
@@ -71,16 +72,21 @@ using UnityEngine;
                  lastLoginIP = savedProfilerIP;
              }
 
-             if (PANetDrv.Instance == null)
+             if (NetManager.Instance == null)
              {
-                 PANetDrv.Instance = new PANetDrv();
-
+                 NetUtil.LogHandler = Debug.LogFormat;
+                 NetUtil.LogErrorHandler = Debug.LogErrorFormat;
+                 NetManager.Instance = new NetManager();
                  NetManager.Instance.RegisterCmdHandler(eNetCmd.SV_SendLuaProfilerMsg, NetHandle_SendLuaProfilerMsg);
                  NetManager.Instance.RegisterCmdHandler(eNetCmd.SV_StartLuaProfilerMsg, NetHandle_StartLuaProfilerMsg);
              }
              ClearHanoiRoot();
          }
-         
+
+         void OnEnable()
+         {
+             InitNet();
+         }
 
          public bool NetHandle_StartLuaProfilerMsg(eNetCmd cmd, UsCmd c)
          {
@@ -162,10 +168,10 @@ using UnityEngine;
          }
 
          void OnDestroy() {
-             if (PANetDrv.Instance != null)
+             if (NetManager.Instance != null)
              {
-                 PANetDrv.Instance.Dispose();
-                 PANetDrv.Instance = null;
+                 NetManager.Instance.Dispose();
+                 NetManager.Instance = null;
              }
          }
 
