@@ -9,15 +9,9 @@
 #include <assert.h>
 #include "lp.h"
 
-#ifdef _WIN32
-#define STDCALL _stdcall
-#else
-#define STDCALL
-#endif
-
 FILE *outf;
 
-typedef void(STDCALL *pfnoutputCallback)(char* info);
+typedef void(*pfnoutputCallback)(const char* info);
 
 pfnoutputCallback pOutputCallback;
 
@@ -25,7 +19,7 @@ pfnoutputCallback pOutputCallback;
 char* pUnityObject;
 char* pUnityMethod;
 
-double dTotalWriteConsuming;
+//double dTotalWriteConsuming;
 
 typedef struct tag_lprof_OUTPUT lprof_OUTPUT;
 

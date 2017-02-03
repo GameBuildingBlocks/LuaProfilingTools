@@ -37,7 +37,6 @@ char* pOutput = NULL;
 int   nMaxStackLevel = 0;
 int   nTotalCall = 0;
 double dTotalTimeConsuming = 0.0;
-
 int   nOutputCount = 0;
 long node_size = 0;
 int first_flush = 1;
@@ -45,31 +44,12 @@ double dPreFrameLuaConsuming = 0.0;
 double dPreFrameFunConsuming = 0.0;
 double dPreFrameTime = 0.0;
 
-//FILE* outf;
-//LARGE_INTEGER time_maker_golbal_begin;
-//LARGE_INTEGER time_maker_golbal_end;
-//LARGE_INTEGER time_maker_golbal_init;
 LARGE_INTEGER time_maker_golbal_start;
 LARGE_INTEGER time_maker_golbal_stop;
 
-cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming, double* pdFunConsuming);
+cJSON* treeTojson(lprofT_NODE* p, calltype precalltype, double* pdLuaConsuming,double* pdFunConsuming);
+void freeTree(lprofT_NODE* p);
 
-/*
-void output(const char *format, ...) {
-	LARGE_INTEGER timestart;
-	lprofC_start_timer2(&timestart);
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(outf, format, ap);
-	va_end(ap);
-
-	fflush(outf);
-	dTotalWriteConsuming += lprofC_get_seconds2(&timestart);
-}
-*/
-
-/* do not allow a string with '\n' and '|' (log file format reserved chars) */
-/* - replace them by ' '                                                    */
 void formats(char *s) {
 	int i;
 	if (!s)
@@ -86,18 +66,18 @@ void lprofT_addchild(lprofT_NODE* pParent, lprofT_NODE* pChild)
 	{
 		if (pParent->nChildCount >= pParent->nMaxChildCount)
 		{
-			lprofT_NODE** ppTmp = realloc(pParent->ppChild, pParent->nMaxChildCount * 2 * sizeof(lprofT_NODE));
+			lprofT_NODE* ppTmp = realloc(pParent->pChild, pParent->nMaxChildCount * 2 * sizeof(lprofT_NODE));
 			assert(ppTmp);
 			if (ppTmp)
 			{
-				pParent->ppChild = ppTmp;
-				pParent->ppChild[pParent->nChildCount] = pChild;
+				pParent->pChild = ppTmp;
+				pParent->pChild[pParent->nChildCount] = *pChild;
 				pParent->nMaxChildCount = pParent->nMaxChildCount * 2;
 			}
 		}
 		else
 		{
-			pParent->ppChild[pParent->nChildCount] = pChild;
+			pParent->pChild[pParent->nChildCount] = *pChild;
 		}
 		pChild->pParent = pParent;
 		pParent->nChildCount++;
@@ -125,17 +105,25 @@ void lprofT_pop()
 
 lprofT_NODE* lprofT_createNode(int count)
 {
-	lprofT_NODE* pNode = (lprofT_NODE*)malloc(count * sizeof(lprofT_NODE));
-	memset(pNode, 0x0, count*sizeof(lprofT_NODE));
-	for (int i = 0; i < count; i++)
+	int i = 0;
+	lprofT_NODE* pNode = NULL;
+	node_size += count * sizeof(lprofT_NODE);
+	pNode = (lprofT_NODE*)malloc(count * sizeof(lprofT_NODE));
+	if(pNode)
 	{
-		pNode[i].stack_level = 0;
-		pNode[i].pNode = NULL;
-		pNode[i].ppChild = (lprofT_NODE*)malloc(MAX_CHILD_SIZE*sizeof(lprofT_NODE));
-		pNode[i].nChildCount = 0;
-		pNode[i].nMaxChildCount = MAX_CHILD_SIZE;
-		memset(pNode[i].ppChild, 0x0, MAX_CHILD_SIZE*sizeof(lprofT_NODE));
+		memset(pNode, 0x0, count*sizeof(lprofT_NODE));
+		for (i = 0; i < count; i++)
+		{
+			pNode[i].stack_level = 0;
+			pNode[i].pNode = NULL;
+			pNode[i].pChild = (lprofT_NODE*)malloc(MAX_CHILD_SIZE*sizeof(lprofT_NODE));
+			pNode[i].nChildCount = 0;
+			pNode[i].nMaxChildCount = MAX_CHILD_SIZE;
+			if(pNode[i].pChild)
+				memset(pNode[i].pChild, 0x0, MAX_CHILD_SIZE*sizeof(lprofT_NODE));
+		}
 	}
+	
 	
 	return pNode;
 }
@@ -144,15 +132,19 @@ lprofT_NODE* lprofT_createNode(int count)
 void lprofS_push(lprofS_STACK *p, lprofS_STACK_RECORD r) {
 lprofS_STACK q;
         q=(lprofS_STACK)malloc(sizeof(lprofS_STACK_RECORD));
-        *q=r;
-        q->next=*p;
-        *p=q;
-		lprofT_add(q);
+		if(q)
+		{
+			*q=r;
+			q->next=*p;
+			*p=q;
+			lprofT_add(q);
+		}
 }
 
-lprofS_STACK_RECORD lprofS_pop(lprofS_STACK *p) {
-lprofS_STACK_RECORD r;
-lprofS_STACK q;
+lprofS_STACK_RECORD lprofS_pop(lprofS_STACK *p) 
+{
+	lprofS_STACK_RECORD r;
+	lprofS_STACK q;
 
         r=**p;
         q=*p;
@@ -163,17 +155,10 @@ lprofS_STACK q;
 }
 
 void lprofT_add(lprofS_STACK pChild)
-{
-/*
-#ifdef _MSC_VER
-	if (time_maker_golbal_begin.QuadPart <= 0)
-#else
-	if (time_maker_golbal_begin.tv_usec <= 0 || time_maker_golbal_begin.tv_sec <= 0)
-#endif
-	lprofC_start_timer2(&time_maker_golbal_begin);
-*/
+{	
+	lprofT_NODE* p = NULL;
 	nTotalCall++;
-	lprofT_NODE* p = lprofT_createNode(1);
+	p = lprofT_createNode(1);
 	p->pNode = pChild;
 	p->stack_level = pChild->stack_level;
 	lprofC_start_timer2(&(pChild->time_maker_local_time_begin));
@@ -199,148 +184,23 @@ void lprofT_add(lprofS_STACK pChild)
 	
 }
 
-/*
-void lprofT_print2()
-{
-	output("-------------------------------------------------\n");
-	pOutput = (char*)malloc((MAX_OUTPUT_MESSAGE_LENGTH + 1)*nMaxStackLevel);
-	memset(pOutput, 0x0, (MAX_OUTPUT_MESSAGE_LENGTH + 1)*nMaxStackLevel);
-	assert(pOutput);
-	lprofT_output(pTreeRoot);
-	pTreeNode = pTreeRoot = NULL;
-	if (pOutput)
-	{
-		free(pOutput);
-		nOutputCount = 0;
-		nMaxStackLevel = 0;
-	}
-}
-*/
-
-/*
-void lprofT_print()
-{
-	if (pTopRoot == NULL)
-	{
-		pTopRoot = lprofT_createNode(1);
-		pTopRoot->stack_level = 0;
-	}
-	lprofT_addchild(pTopRoot, pTreeNode);
-	pTreeNode = pTreeRoot = NULL;
-}
-*/
-
-/*
-void lprofT_output(lprofT_NODE* p)
-{
-	if (p && p->pNode)
-	{
-		char* source = p->pNode->source_code;
-		if(source == NULL) {
-			source = "(string)";
-		}
-		else {
-			formats(source);
-		}
-		char* name = p->pNode->function_name;
-
-		if (strlen(name) > MAX_FUNCTION_NAME_LENGTH) {
-			name = (char*)malloc(MAX_FUNCTION_NAME_LENGTH + 10);
-			name[0] = '\"';
-			strncpy(name + 1, p->pNode->function_name, MAX_FUNCTION_NAME_LENGTH);
-			name[MAX_FUNCTION_NAME_LENGTH] = '"';
-			name[MAX_FUNCTION_NAME_LENGTH + 1] = '\0';
-		}
-		formats(name);
-// 		output("%d\t%s\t%s\t%d\t%d\t%f\t\n", p->pNode->stack_level, source, name,
-// 			p->pNode->line_defined, p->pNode->current_line,p->pNode->local_time);
-		if (pOutput)
-		{
-			sprintf(&pOutput[MAX_OUTPUT_MESSAGE_LENGTH*nOutputCount], "%d\t%s\t%s\t%d\t%d\t%f\t\n", p->pNode->stack_level, source, name,
-				p->pNode->line_defined, p->pNode->current_line, p->pNode->local_time);
-			nOutputCount++;
-		}
-		for (int i = 0; i < p->nChildCount; i++)
-			lprofT_output(p->ppChild[i]);
-		if (pOutput)
-		{
-			if (p->nChildCount <= 0)
-			{
-				for (int i = 0; i < nOutputCount*MAX_OUTPUT_MESSAGE_LENGTH;i += MAX_OUTPUT_MESSAGE_LENGTH)
-				{
-					char tmp[MAX_OUTPUT_MESSAGE_LENGTH];
-					memset(tmp, 0x0, MAX_OUTPUT_MESSAGE_LENGTH);
-					#ifdef _MSC_VER
-					strcpy_s(tmp, MAX_OUTPUT_MESSAGE_LENGTH, &pOutput[i]);
-					#else
-					memcpy(tmp, &pOutput[i], (size_t)MAX_OUTPUT_MESSAGE_LENGTH);
-					#endif
-					
-					//printf("%s\n", tmp);
-					output("%s\n", tmp);
-				}
-				output("----\n");
-			}
-			nOutputCount--;
-		}
-		lprofT_free(p);
-	}
-}
-*/
-
 void lprofT_free(lprofT_NODE* p)
 {
 	if (p)
 	{
+		/*
 		if (p->pNode)
 		{
 			free(p->pNode);
 			p->pNode = NULL;
 		}
-		free(p->ppChild);
+		free(p->pChild);
+		*/
 		free(p);
 		p = NULL;
 	}
 	
 }
-
-/*
-cJSON* treeTojson2(lprofT_NODE* p)
-{
-	assert(p);
-	cJSON* root = NULL;
-	if (p && p->pNode)
-	{
-		root = cJSON_CreateObject();
-		cJSON_AddItemToObject(root, "ln", cJSON_CreateNumber(p->pNode->current_line));
-		//cJSON_AddItemToObject(root, "lnDef", cJSON_CreateNumber(p->pNode->line_defined));
-		cJSON_AddItemToObject(root, "cs", cJSON_CreateNumber(p->pNode->local_time)); // time consuming
-		cJSON_AddItemToObject(root, "lv", cJSON_CreateNumber(p->pNode->stack_level));
-		//cJSON_AddItemToObject(root, "itv", cJSON_CreateNumber(p->pNode->interval_time));
-		cJSON_AddItemToObject(root, "info", cJSON_CreateString(p->pNode->what));
-
-		char* source = p->pNode->file_defined;
-		if (source == NULL || strcmp(source, "") == 0) {
-			source = "(string)";
-		}
-		cJSON_AddItemToObject(root, "mod", cJSON_CreateString(source)); // module name
-		char* name = p->pNode->function_name;
-		formats(name);
-		cJSON_AddItemToObject(root, "fn", cJSON_CreateString(name));	// function name
-		{
-			cJSON* pChild = cJSON_CreateArray();
-			if (pChild)
-				cJSON_AddItemToObject(root, "sub", pChild);
-			int i = 0;
-			for (i = 0; i < p->nChildCount; i++)
-				cJSON_AddItemToArray(pChild, treeTojson2(p->ppChild[i]));
-		}
-
-		lprofT_free(p);
-	}
-	return root;
-}
-*/
 
 void lprofT_tojson()
 {
@@ -349,6 +209,7 @@ void lprofT_tojson()
 		double dLuaConsuming = 0.0;
 		double dFunConsuming = 0.0;
 		cJSON* root = treeTojson(pTreeRoot,none,&dLuaConsuming,&dFunConsuming);
+		freeTree(pTreeRoot);
 		char *jstring = cJSON_Print(root);
 		//output(jstring);
 		//output(",");
@@ -359,94 +220,56 @@ void lprofT_tojson()
 		dPreFrameLuaConsuming += dLuaConsuming;
 		dPreFrameFunConsuming += dFunConsuming;
 		pTreeRoot = NULL;
-/*
-#ifdef _MSC_VER
-		time_maker_golbal_begin.QuadPart = 0;
-		time_maker_golbal_end.QuadPart = 0;
-#else
-		time_maker_golbal_begin.tv_sec = 0;
-		time_maker_golbal_begin.tv_usec = 0;
-
-		time_maker_golbal_end.tv_sec = 0;
-		time_maker_golbal_end.tv_usec = 0;
-#endif	
-*/
 	}
 
 }
 
-/*
-void lprofT_tojson2()
-{
-	if (pTreeRoot)
-	{
-		if(first_flush)
-			output("[");
-		first_flush = 0;
-
-		cJSON* root = treeTojson2(pTreeRoot);
-		char *jstring = cJSON_Print(root);
-		output(jstring);
-		cJSON_Delete(root);
-		free(jstring);
-		pTreeRoot = NULL;
-		node_size = 0;
-
-		output(",");
-	}
-}
-*/
-
-/*
 void lprofT_close()
 {
-	cJSON* root = cJSON_CreateObject();
-	cJSON_AddItemToObject(root, "total_cs", cJSON_CreateNumber(dTotalTimeConsuming));
-	cJSON_AddItemToObject(root, "total_call", cJSON_CreateNumber(nTotalCall));
-	char *jstring = cJSON_Print(root);
-	output(jstring);
-	cJSON_Delete(root);
-	free(jstring);
+	lprofP_close();
 	nTotalCall = 0;
 	dTotalTimeConsuming = 0.0;
-	first_flush = 1;
-	output("]");
+	pTreeRoot = NULL;
+	dPreFrameTime = 0.0;
+
 }
-*/
 
 cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming, double* pdFunConsuming)
 {
-	assert(p);
+	
 	cJSON* root = NULL;
+	assert(p);
 	if (p && p->pNode)
 	{
+		cJSON* pChild = NULL;
+		calltype curCalltype;
+		char* source = NULL;
+		char* name = NULL;
+		int i = 0;
 		double beginTime = lprofC_get_interval(&time_maker_golbal_start,&p->pNode->time_maker_local_time_begin);
 		double endTime = lprofC_get_interval(&time_maker_golbal_start,&p->pNode->time_maker_local_time_end);
-		//double beginTime = lprofC_get_interval(&time_maker_golbal_begin,&p->pNode->time_maker_local_time_begin);
-		//double endTime = lprofC_get_interval(&time_maker_golbal_begin,&p->pNode->time_maker_local_time_end);
 		double consumingTimer = lprofC_get_interval(&p->pNode->time_maker_local_time_begin, &p->pNode->time_maker_local_time_end);
 		root = cJSON_CreateObject();
-		cJSON_AddItemToObject(root, "currentLine", cJSON_CreateNumber(p->pNode->current_line));
-		cJSON_AddItemToObject(root, "lineDefined", cJSON_CreateNumber(p->pNode->line_defined));
-		cJSON_AddItemToObject(root, "timeConsuming", cJSON_CreateNumber(consumingTimer));
+		cJSON_AddItemToObject(root, "ln", cJSON_CreateNumber(p->pNode->current_line));
+		//cJSON_AddItemToObject(root, "lineDefined", cJSON_CreateNumber(p->pNode->line_defined));
+		cJSON_AddItemToObject(root, "cs", cJSON_CreateNumber(consumingTimer));
 		//cJSON_AddItemToObject(root, "timeConsuming", cJSON_CreateNumber(p->pNode->local_time));
-		cJSON_AddItemToObject(root, "stackLevel", cJSON_CreateNumber(p->pNode->stack_level));
+		cJSON_AddItemToObject(root, "lv", cJSON_CreateNumber(p->pNode->stack_level));
 		//cJSON_AddItemToObject(root, "interval", cJSON_CreateNumber(p->pNode->interval_time));
-		cJSON_AddItemToObject(root, "callType", cJSON_CreateString(p->pNode->what));
-		cJSON_AddItemToObject(root, "begintime", cJSON_CreateNumber(beginTime));
-		cJSON_AddItemToObject(root, "endtime", cJSON_CreateNumber(endTime));
- 		char* source = p->pNode->file_defined;
+		cJSON_AddItemToObject(root, "info", cJSON_CreateString(p->pNode->what));
+		cJSON_AddItemToObject(root, "bt", cJSON_CreateNumber(beginTime));
+		cJSON_AddItemToObject(root, "et", cJSON_CreateNumber(endTime));
+ 		source = p->pNode->file_defined;
 		if (source == NULL || strcmp(source,"") == 0) {
 			source = "(string)";
 		}
 
-		cJSON_AddItemToObject(root, "moduleName", cJSON_CreateString(source));
+		cJSON_AddItemToObject(root, "mod", cJSON_CreateString(source));
 		//free(source_out);
-		char* name = p->pNode->function_name;
+		name = p->pNode->function_name;
 		formats(name);
-		cJSON_AddItemToObject(root, "funcName", cJSON_CreateString(name));
+		cJSON_AddItemToObject(root, "fn", cJSON_CreateString(name));
 
-		calltype curCalltype;
 		if (lua == precalltype)
 		{
 			if (*pdLuaConsuming <= 0.0 && strcmp(p->pNode->what, gpsz_luamark) == 0)
@@ -475,141 +298,100 @@ cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming, d
 		else
 			curCalltype = nolua;
 
-		cJSON* pChild = cJSON_CreateArray();
+		pChild = cJSON_CreateArray();
 		if (pChild)
-			cJSON_AddItemToObject(root, "children", pChild);
-		for (int i = 0; i < p->nChildCount; i++)
-			cJSON_AddItemToArray(pChild, treeTojson(p->ppChild[i], curCalltype,pdLuaConsuming,pdFunConsuming));
+			cJSON_AddItemToObject(root, "sub", pChild);
+		
+		for (i = 0; i < p->nChildCount; i++)
+			cJSON_AddItemToArray(pChild, treeTojson(&p->pChild[i], curCalltype,pdLuaConsuming,pdFunConsuming));
+		//lprofT_free(p);
+	}
+	return root;
+}
+
+void freeTree(lprofT_NODE* p)
+{
+	if (p)
+	{
+		for (int i = 0;i < p->nChildCount;i++)
+		{
+			freeTree(&p->pChild[i]);
+		}
 		lprofT_free(p);
 	}
-	/*
-	else if (p->stack_level == 0)
-	{
-		double begin = lprofC_get_millisecond(&time_maker_golbal_begin);
-		lprofC_start_timer2(&time_maker_golbal_end);
-		double end = lprofC_get_millisecond(&time_maker_golbal_end);
-		//dTotalTimeConsuming = lprofC_get_interval(&time_maker_golbal_begin, &time_maker_golbal_end);
-		root = cJSON_CreateObject();
-		cJSON*top = cJSON_CreateObject();
-		cJSON*zore = cJSON_CreateObject();
-		cJSON_AddItemToObject(root, "c", top);
-		cJSON_AddItemToObject(top, "objectName", cJSON_CreateString("c lua profiler"));
-		cJSON_AddItemToObject(top, "timeConsuming", cJSON_CreateNumber(dTotalTimeConsuming));
-		cJSON_AddItemToObject(top, "programName", cJSON_CreateString("lua profiler"));
-		cJSON_AddItemToObject(top, "totalCalls", cJSON_CreateNumber(nTotalCall));
-		cJSON_AddItemToObject(top, "callStats", zore);
-		cJSON_AddItemToObject(zore, "stackLevel", cJSON_CreateNumber(0));
-		cJSON_AddItemToObject(zore, "currentLine", cJSON_CreateNumber(0));
-		cJSON_AddItemToObject(zore, "lineDefined", cJSON_CreateNumber(0));
-		cJSON_AddItemToObject(zore, "moduleName", cJSON_CreateString("lua zore"));
-		cJSON_AddItemToObject(zore, "funcName", cJSON_CreateString("c call"));
-		cJSON_AddItemToObject(zore, "timeConsuming", cJSON_CreateNumber(dTotalTimeConsuming));
-		cJSON_AddItemToObject(zore, "callType", cJSON_CreateString("C"));
-		cJSON_AddItemToObject(zore, "interval", cJSON_CreateNumber(0));
-		cJSON_AddItemToObject(zore, "begintime", cJSON_CreateNumber(begin));
-		cJSON_AddItemToObject(zore, "endtime", cJSON_CreateNumber(end));
-
-		
-		cJSON* pChild = cJSON_CreateArray();
-		if (pChild)
-			cJSON_AddItemToObject(zore, "children", pChild);
-		for (int i = 0; i < p->nChildCount; i++)
-			cJSON_AddItemToObject(pChild, "callStats", treeTojson(p->ppChild[i]));
-	
-	}
-	*/
-	return root;
 }
 
 /*
-cJSON* treeTojson2(lprofT_NODE* p)
-{
-	assert(p);
-	cJSON* root = NULL;
-	if (p && p->pNode)
-	{
-		root = cJSON_CreateObject();
-		cJSON_AddItemToObject(root, "currentLine", cJSON_CreateNumber(p->pNode->current_line));
-		cJSON_AddItemToObject(root, "lineDefined", cJSON_CreateNumber(p->pNode->line_defined));
-		cJSON_AddItemToObject(root, "timeConsuming", cJSON_CreateNumber(p->pNode->local_time));
-		cJSON_AddItemToObject(root, "stackLevel", cJSON_CreateNumber(p->pNode->stack_level));
-		cJSON_AddItemToObject(root, "interval", cJSON_CreateNumber(p->pNode->interval_time));
-		cJSON_AddItemToObject(root, "callType", cJSON_CreateString(p->pNode->what));
-
-		char* source = p->pNode->file_defined;
-		if (source == NULL || strcmp(source, "") == 0) {
-			source = "(string)";
-		}
-		cJSON_AddItemToObject(root, "moduleName", cJSON_CreateString(source));
-		char* name = p->pNode->function_name;
-		formats(name);
-		cJSON_AddItemToObject(root, "funcName", cJSON_CreateString(name));
-		{
-			cJSON* pChild = cJSON_CreateArray();
-			if (pChild)
-				cJSON_AddItemToObject(root, "children", pChild);
-			for (int i = 0; i < p->nChildCount; i++)
-				cJSON_AddItemToArray(pChild, treeTojson2(p->ppChild[i]));
-		}
-
-		lprofT_free(p);
-	}
-	return root;
-}
+	写文件多线程版本，暂时不使用
+	2016-08-10 lennon.c
 */
-
-
-void lprofT_close()
+void thread_func()
 {
-	/*
-	cJSON* root = cJSON_CreateObject();
-	lprofC_start_timer2(&time_maker_golbal_stop);
-	double startTime = lprofC_get_interval(&time_maker_golbal_start,&time_maker_golbal_start);
-	double stopTime = lprofC_get_interval(&time_maker_golbal_start, &time_maker_golbal_stop);
-	//double initTime = lprofC_get_millisecond(&time_maker_golbal_init);
-	double processTime = lprofC_get_interval(&time_maker_golbal_start,&time_maker_golbal_stop);
-	//cJSON_AddItemToObject(root, "inittime", cJSON_CreateNumber(initTime));
-	cJSON_AddItemToObject(root, "starttime", cJSON_CreateNumber(startTime));
-	cJSON_AddItemToObject(root, "stoptime", cJSON_CreateNumber(stopTime));
-	cJSON_AddItemToObject(root, "processTimeConsuming", cJSON_CreateNumber(processTime));
-	cJSON_AddItemToObject(root, "totalCalltimeConsuming", cJSON_CreateNumber(dTotalTimeConsuming));
-	cJSON_AddItemToObject(root, "totalCalls", cJSON_CreateNumber(nTotalCall));
+	lprofT_tojson();
 
-	char *jstring = cJSON_Print(root);
-	output(jstring);
-	cJSON_Delete(root);
-	free(jstring);
-	*/
-	lprofP_close();
-	nTotalCall = 0;
-	dTotalTimeConsuming = 0.0;
-	pTreeRoot = NULL;
-	dPreFrameTime = 0.0;
-
+	if (outf)
+		fclose(outf);
 }
 
-cJSON* frameTojson(int id ,int unitytime)
+#ifdef _MSC_VER
+unsigned int __stdcall thread_func_win(void* m)
+#else
+unsigned int thread_func_win(void* m)
+#endif
+{
+	thread_func();
+	return 0;
+}
+
+void* thread_func_linux(void* m)
+{
+	thread_func();
+#ifndef _MSC_VER
+	pthread_exit(NULL);
+#endif
+	return NULL;
+}
+
+void lprofT_tojson_thread()
+{
+#ifdef _MSC_VER
+	_beginthreadex(NULL, 0, thread_func_win, NULL, 0, NULL);
+#else
+	pthread_t thr;
+	pthread_create(&thr, NULL, thread_func_linux, NULL);
+#endif
+}
+
+
+cJSON* frameTojson(int id, int unitytime)
 {
 	cJSON* root = NULL;
 	double frametime = lprofC_get_seconds2(&time_maker_golbal_start);
-	
+
 	root = cJSON_CreateObject();
-	cJSON_AddItemToObject(root, "frameID", cJSON_CreateNumber(id));
-	cJSON_AddItemToObject(root, "frameTime", cJSON_CreateNumber(frametime));
-	cJSON_AddItemToObject(root, "frameUnityTime", cJSON_CreateNumber(unitytime));
-	cJSON_AddItemToObject(root, "writefileTime", cJSON_CreateNumber(dTotalWriteConsuming));
+	cJSON_AddItemToObject(root, "fid", cJSON_CreateNumber(id));
+	cJSON_AddItemToObject(root, "ft", cJSON_CreateNumber(frametime));
+	cJSON_AddItemToObject(root, "fut", cJSON_CreateNumber(unitytime));
+	
+	//cJSON_AddItemToObject(root, "writefileTime", cJSON_CreateNumber(dTotalWriteConsuming));
 	if (dPreFrameLuaConsuming > 0)
 	{
-		cJSON_AddItemToObject(root, "luaConsuming", cJSON_CreateNumber(dPreFrameLuaConsuming));
-		cJSON_AddItemToObject(root, "funConsuming", cJSON_CreateNumber(dPreFrameFunConsuming));
-		double dFrameInterval = frametime - dPreFrameTime;
-		cJSON_AddItemToObject(root, "frameInterval", cJSON_CreateNumber(dFrameInterval));
+		double dFrameInterval = 0.0;
+		cJSON_AddItemToObject(root, "lc", cJSON_CreateNumber(dPreFrameLuaConsuming));
+		cJSON_AddItemToObject(root, "fc", cJSON_CreateNumber(dPreFrameFunConsuming));
+		dFrameInterval = frametime - dPreFrameTime;
+		cJSON_AddItemToObject(root, "fi", cJSON_CreateNumber(dFrameInterval));
+		cJSON_AddItemToObject(root, "stFlag", cJSON_CreateFalse());
+	}
+	else
+	{
+		cJSON_AddItemToObject(root, "stFlag", cJSON_CreateTrue());
 	}
 	dPreFrameTime = frametime;
 	//cJSON_AddItemToObject(root, "frameInterval", cJSON_CreateNumber(frametime));
-	
+
 	return root;
-	
+
 }
 
 void lprofT_frame(int id, int unitytime)
@@ -618,7 +400,7 @@ void lprofT_frame(int id, int unitytime)
 	if (root)
 	{
 		char *jstring = cJSON_Print(root);
-		lprofP_addFrame(id,jstring);
+		lprofP_addFrame(id, jstring);
 		//output(jstring);
 		//output(",");
 		cJSON_Delete(root);

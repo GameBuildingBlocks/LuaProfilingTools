@@ -14,7 +14,11 @@ Design:
                           was started
 *****************************************************************************/
 
+#ifdef _MSC_VER
 #include <time.h>
+#else
+#include <sys/time.h>
+#endif
 #include "lp.h"
 
 void lprofC_start_timer(clock_t *time_marker);

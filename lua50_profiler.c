@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** LuaProfiler
 ** Copyright Kepler Project 2005-2007 (http://www.keplerproject.org/luaprofiler)
 ** $Id: lua50_profiler.c,v 1.16 2008-05-20 21:16:36 mascarenhas Exp $
@@ -8,8 +8,12 @@
 lua50_profiler.c:
    Lua version dependent profiler interface
 *****************************************************************************/
+/*
+	解决跨平台编译时宏控制import/export的问题 lennon.c
+	2016-08-11 lennon.c
+*/ 
 #define LUA_CORE
-
+ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,8 +21,6 @@ lua50_profiler.c:
 #include "clocks.h"
 #include "core_profiler.h"
 #include "function_meter.h"
-#include "stack.h"
-#include "output.h"
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -31,7 +33,6 @@ static int is_pause;
 //static int profresult_id;
 
 /* Forward declaration */
-static float calcCallTime(lua_State *L);
 static int profiler_stop(lua_State *L);
 //static int profiler_clear(lua_State *L);
 
@@ -40,6 +41,7 @@ static void callhook(lua_State *L, lua_Debug *ar) {
   int currentline;
   lua_Debug previous_ar;
   lprofP_STATE* S;
+  int stackIndex = -1;
   lua_pushlightuserdata(L, &profstate_id);
   lua_gettable(L, LUA_REGISTRYINDEX);
   S = (lprofP_STATE*)lua_touserdata(L, -1);
@@ -53,7 +55,7 @@ static void callhook(lua_State *L, lua_Debug *ar) {
       
   lua_getinfo(L, "nS", ar);
 
-  int stackIndex = lua_gettop(L);
+  stackIndex = lua_gettop(L);
 
   printf("stacklevel = %d", S->stack_level);
 
@@ -61,7 +63,7 @@ static void callhook(lua_State *L, lua_Debug *ar) {
 		  /* entering a function */
 		  lprofP_callhookIN(S, (char *)ar->name,
 			  (char *)ar->source, ar->linedefined,
-			  currentline,ar->what);
+			  currentline,(char *)ar->what);
 	  }
 	  else { /* ar->event == "return" */
 		  lprofP_callhookOUT(S);
@@ -128,121 +130,88 @@ static int profiler_resume(lua_State *L) {
 }
 
 static int profiler_init(lua_State *L) {
-  lprofP_STATE* S;
-  const char* outfile;
-  float function_call_time;
-  //lprofT_start();
-  lua_pushlightuserdata(L, &profstate_id);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  if(!lua_isnil(L, -1)) {
-    profiler_stop(L);
-  }
-  lua_pop(L, 1);
+	lprofP_STATE* S;
+	const char* outfile;
 
-  function_call_time = calcCallTime(L);
-
-  outfile = NULL;
-  if(lua_gettop(L) >= 1)
-    outfile = luaL_checkstring(L, 1);
-
-  /* init with default file name and printing a header line */
-  if (!(S=lprofP_init_core_profiler(outfile, 1, function_call_time))) {
-    return luaL_error(L,"LuaProfiler error: output file could not be opened!");
-  }
-  lua_sethook(L, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
-
-  lua_pushlightuserdata(L, &profstate_id);
-  lua_pushlightuserdata(L, S);
-  lua_settable(L, LUA_REGISTRYINDEX);
-	
-  /* use our own exit function instead */
-  lua_getglobal(L, "os");
-  lua_pushlightuserdata(L, &exit_id);
-  lua_pushstring(L, "exit");
-  lua_gettable(L, -3);
-  lua_settable(L, LUA_REGISTRYINDEX);
-  lua_pushstring(L, "exit");
-  lua_pushcfunction(L, (lua_CFunction)exit_profiler);
-  lua_settable(L, -3);
-
-#if 0
-  /* use our own coroutine.create function instead */
-  lua_getglobal(L, "coroutine");
-  lua_pushstring(L, "create");
-  lua_pushcfunction(L, (lua_CFunction)coroutine_create);
-  lua_settable(L, -3);
-#endif
-
-  /* the following statement is to simulate how the execution stack is */
-  /* supposed to be by the time the profiler is activated when loaded  */
-  /* as a library.                                                     */
-  
-  //lprofP_callhookIN(S, "profiler_init", "(C)", -1, -1,"C");
-	
-  lua_pushboolean(L, 1);
-  return 1;
-}
-
-static int profiler_stop(lua_State *L) {
-  lprofP_STATE* S;
-  lua_sethook(L, (lua_Hook)callhook, 0, 0);
-  lua_pushlightuserdata(L, &profstate_id);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  if(!lua_isnil(L, -1)) {
-    S = (lprofP_STATE*)lua_touserdata(L, -1);
-    /* leave all functions under execution */
-    while (lprofP_callhookOUT(S));
-    lprofP_close_core_profiler(S);
-    lua_pushlightuserdata(L, &profstate_id);
-    lua_pushnil(L);
-    lua_settable(L, LUA_REGISTRYINDEX);
-    lua_pushboolean(L, 1);
-  } else { lua_pushboolean(L, 0); }
-  return 1;
-}
-
-static int profiler_frame(lua_State* L)
-{
-	int arg1, arg2;
-	if (lua_gettop(L) >= 2)
-	{
-		arg1 = luaL_checknumber(L, 1);
-		arg2 = luaL_checknumber(L, 2);
-		lprofT_frame(arg1, arg2);
-		return 1;
+	lua_pushlightuserdata(L, &profstate_id);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	if(!lua_isnil(L, -1)) {
+	profiler_stop(L);
 	}
-}
+	lua_pop(L, 1);
 
-/* calculates the approximate time Lua takes to call a function */
-static float calcCallTime(lua_State *L) {
-  clock_t timer;
-  char lua_code[] = "                                     \
-                   function lprofT_mesure_function()    \
-                   local i                              \
-                                                        \
-                      local t = function()              \
-                      end                               \
-                                                        \
-                      i = 1                             \
-                      while (i < 100000) do             \
-                         t()                            \
-                         i = i + 1                      \
-                      end                               \
-                   end                                  \
-                                                        \
-                   lprofT_mesure_function()             \
-                   lprofT_mesure_function = nil         \
-                 ";
+	outfile = NULL;
+	if(lua_gettop(L) >= 1)
+	outfile = luaL_checkstring(L, 1);
 
-  lprofC_start_timer(&timer);
-  luaL_dostring(L, lua_code);
-  return lprofC_get_seconds(timer) / (float) 100000;
+	/* init with default file name and printing a header line */
+	if (!(S=lprofP_init_core_profiler(outfile, 1, 0))) {
+	return luaL_error(L,"LuaProfiler error: output file could not be opened!");
+	}
+
+	lua_sethook(L, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+
+	lua_pushlightuserdata(L, &profstate_id);
+	lua_pushlightuserdata(L, S);
+	lua_settable(L, LUA_REGISTRYINDEX);
+	
+	/* use our own exit function instead */
+	lua_getglobal(L, "os");
+	lua_pushlightuserdata(L, &exit_id);
+	lua_pushstring(L, "exit");
+	lua_gettable(L, -3);
+	lua_settable(L, LUA_REGISTRYINDEX);
+	lua_pushstring(L, "exit");
+	lua_pushcfunction(L, (lua_CFunction)exit_profiler);
+	lua_settable(L, -3);
+
+	#if 0
+	/* use our own coroutine.create function instead */
+	lua_getglobal(L, "coroutine");
+	lua_pushstring(L, "create");
+	lua_pushcfunction(L, (lua_CFunction)coroutine_create);
+	lua_settable(L, -3);
+	#endif
+
+	/* the following statement is to simulate how the execution stack is */
+	/* supposed to be by the time the profiler is activated when loaded  */
+	/* as a library.                                                     */
+
+	lprofP_callhookIN(S, "profiler_init", "(C)", -1, -1,"C");
+	
+	lua_pushboolean(L, 1);
+	return 1;
 }
 
 static int is_profiler_pause(lua_State *L)
 {
 	lua_pushboolean(L, is_pause);
 	return 1;
+}
+
+static int profiler_stop(lua_State *L) {
+	lprofP_STATE* S;
+	lua_sethook(L, (lua_Hook)callhook, 0, 0);
+	lua_pushlightuserdata(L, &profstate_id);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	if(!lua_isnil(L, -1)) 
+	{
+		S = (lprofP_STATE*)lua_touserdata(L, -1);
+		/* leave all functions under execution */
+		while (lprofP_callhookOUT(S))
+			;
+		lprofP_close_core_profiler(S);
+		lua_pushlightuserdata(L, &profstate_id);
+		lua_pushnil(L);
+		lua_settable(L, LUA_REGISTRYINDEX);
+		lua_pushboolean(L, 1);
+	} 
+	else 
+	{ 
+		lua_pushboolean(L, 0); 
+	}
+
+  return 1;
 }
 
 static const luaL_Reg prof_funcs[] = {
@@ -280,13 +249,14 @@ int profiler_open(lua_State *L)
 	lua_register(L, "profiler_pause", profiler_pause);
 	lua_register(L, "profiler_resume", profiler_resume);
 	lua_register(L, "profiler_stop", profiler_stop);
+	// 增加一个判断是否暂停的函数 2016-08-10 lennon.c
 	lua_register(L, "is_profiler_pause", is_profiler_pause);
 
 	return 1;
 }
 
 
-DLL_API void init_profiler(lua_State *L)
+LUA_API void init_profiler(lua_State *L)
 {
 	profiler_open(L);
 	pOutputCallback = NULL;
@@ -295,20 +265,20 @@ DLL_API void init_profiler(lua_State *L)
 	lprofT_init();
 }
 
-DLL_API void frame_profiler(int id,int unitytime)
+LUA_API void frame_profiler(int id, int unitytime)
 {
 	lprofT_frame(id, unitytime);
 }
 
-DLL_API void register_callback(void* pcallback)
+LUA_API void register_callback(void* pcallback)
 {
 	if (pcallback)
 	{
-		pOutputCallback = pcallback;
+		pOutputCallback = (pfnoutputCallback)pcallback;
 	}
 }
 
-DLL_API int isregister_callback()
+LUA_API int isregister_callback()
 {
 	if (pOutputCallback)
 		return 1;
@@ -316,7 +286,7 @@ DLL_API int isregister_callback()
 		return 0;
 }
 
-DLL_API void unregister_callback()
+LUA_API void unregister_callback()
 {
 	pOutputCallback = NULL;
 	if (pUnityObject)
@@ -325,27 +295,4 @@ DLL_API void unregister_callback()
 		free(pUnityMethod);
 	pUnityObject = pUnityMethod = NULL;
 
-}
-
-DLL_API void register_callback2(char* pobject, char* pmethod)
-{
-	if (pobject)
-	{
-		if (pUnityObject)
-			free(pUnityObject);
-		int len = strlen(pobject) + 1;
-		pUnityObject = (char*)malloc(len);
-		memset(pUnityObject, 0x0, len);
-		strcpy(pUnityObject, pobject);
-	}
-	if (pmethod)
-	{
-		if (pUnityMethod)
-			free(pUnityMethod);
-		int len = strlen(pmethod) + 1;
-		pUnityMethod = (char*)malloc(len);
-		memset(pUnityMethod, 0x0, len);
-		strcpy(pUnityMethod, pmethod);
-	}
-	
 }

@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** LuaProfiler
 ** Copyright Kepler Project 2005-2007 (http://www.keplerproject.org/luaprofiler)
 ** $Id: function_meter.h,v 1.5 2007-08-22 19:23:53 carregal Exp $

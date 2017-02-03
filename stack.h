@@ -34,16 +34,14 @@ struct lprofS_sSTACK_RECORD {
 	char *what;
 	long line_defined;
 	long current_line;
-	float local_time;
-	float interval_time;
-	float current_time;
+	double local_time;
+	double interval_time;
+	time_t current_time;
 	int stack_level;
 	LARGE_INTEGER time_maker_local_time_begin;
 	LARGE_INTEGER time_maker_local_time_end;
 	lprofS_STACK_RECORD *next;
 };
-
-
 
 typedef lprofS_STACK_RECORD *lprofS_STACK;
 
@@ -56,7 +54,7 @@ struct lprofS_TREE_RECORD
 	int stack_level;
 	lprofS_STACK pNode;
 	lprofT_NODE* pParent;
-	lprofT_NODE** ppChild;
+	lprofT_NODE* pChild;
 	int nChildCount;
 	int nMaxChildCount;
 };

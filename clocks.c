@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** LuaProfiler
 ** Copyright Kepler Project 2005-2007 (http://www.keplerproject.org/luaprofiler)
 ** $Id: clocks.c,v 1.4 2007-08-22 19:23:53 carregal Exp $
@@ -38,32 +38,26 @@ Design:
 */
 
 #ifdef TIMES
-
         #include <sys/times.h>
-
         static struct tms t;
-
         #define times(t) times(t)
-
 #else /* ifdef CLOCK */
-
         #define times(t) clock()
-
 #endif
 
 
 void lprofC_start_timer(clock_t *time_marker) {
-        *time_marker = times(&t);
+    *time_marker = times(&t);
 }
 
 static clock_t get_clocks(clock_t time_marker) {
-        return times(&t) - time_marker;
+    return times(&t) - time_marker;
 }
 
 float lprofC_get_seconds(clock_t time_marker) {
-clock_t clocks;
-        clocks = get_clocks(time_marker);
-        return (float)clocks / (float)CLOCKS_PER_SEC;
+	clock_t clocks;
+    clocks = get_clocks(time_marker);
+    return (float)clocks / (float)CLOCKS_PER_SEC;
 }
 
 
@@ -73,10 +67,9 @@ time_t lprofC_get_current() {
 
 LARGE_INTEGER nFreq;
 
-
 void lprofC_start_timer2(LARGE_INTEGER *nBeginTime)
 {
-
+	// 跨平台支持 2016-08-10 lennon.c
 #ifdef _MSC_VER
 	QueryPerformanceFrequency(&nFreq);
 	QueryPerformanceCounter(nBeginTime);
@@ -90,7 +83,7 @@ double lprofC_get_seconds2(LARGE_INTEGER *nBeginTime)
 {
 	LARGE_INTEGER nEndTime;
 	double time = 0.0;
-
+	// 跨平台支持 2016-08-10 lennon.c
 #ifdef _MSC_VER
 	QueryPerformanceCounter(&nEndTime);
 	time = ((double)(nEndTime.QuadPart - nBeginTime->QuadPart) / (double)nFreq.QuadPart) * 1000;
@@ -104,7 +97,7 @@ double lprofC_get_seconds2(LARGE_INTEGER *nBeginTime)
 double lprofC_get_millisecond(LARGE_INTEGER *nTime)
 {
 	double time = 0.0;
-
+	// 跨平台支持 2016-08-10 lennon.c
 #ifdef _MSC_VER
 	time = ((double)(nTime->QuadPart) / (double)nFreq.QuadPart) * 1000;
 #else
@@ -117,6 +110,7 @@ double lprofC_get_millisecond(LARGE_INTEGER *nTime)
 double lprofC_get_interval(LARGE_INTEGER *nBeginTime, LARGE_INTEGER *nEndTime)
 {
 	double time = 0.0;
+	// 跨平台支持 2016-08-10 lennon.c
 #ifdef _MSC_VER
 	time = ((double)(nEndTime->QuadPart - nBeginTime->QuadPart) / (double)nFreq.QuadPart) * 1000;
 #else

@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** LuaProfiler
 ** Copyright Kepler Project 2005.2007 (http://www.keplerproject.org/luaprofiler)
 ** $Id: core_profiler.c,v 1.10 2009-01-29 12:39:28 jasonsantos Exp $
@@ -38,17 +38,13 @@ a depth-first search recursive algorithm).
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-
 #include "function_meter.h"
 
 #include "core_profiler.h"
 #include "stack.h"
-#include "output.h"
 
     /* default log name (%s is used to place a random string) */
 #define OUT_FILENAME "lprof_%s.out"
-
-#define MAX_FUNCTION_NAME_LENGTH 20
 
 int nPrevStackLevel = 0;
 
@@ -84,6 +80,10 @@ static void formats(char *s) {
   }
 }
 
+/*
+	将lua api的操作记录剔除
+	2016-08-10 lennon.c
+*/
 int filter_lua_api(char* func_name)
 {
 	static char *lua_api[] = {
@@ -107,7 +107,7 @@ int filter_lua_api(char* func_name)
 /* computes new stack and new timer */
 void lprofP_callhookIN(lprofP_STATE* S, char *func_name, char *file, int linedefined, int currentline,char* what) 
 {
-
+  // 过滤lua api操作 2016-08-10 lennon.c
   if (func_name && filter_lua_api(func_name))
 	return;
   S->stack_level++;
@@ -119,7 +119,7 @@ void lprofP_callhookIN(lprofP_STATE* S, char *func_name, char *file, int linedef
 /* pauses all timers to write a log line and computes the new stack */
 /* returns if there is another function in the stack */
 int lprofP_callhookOUT(lprofP_STATE* S) {
-
+	// 过滤lua api操作 2016-08-10 lennon.c
 	if (!S->stack_top)
 		return 0;
 
@@ -132,42 +132,13 @@ int lprofP_callhookOUT(lprofP_STATE* S) {
 	/* 0: do not resume the parent function's timer yet... */
 	info = lprofM_leave_function(S, 0);
 
+	/*if (S->stack_level == 0)
+		lprofT_print();*/
 	if (S->stack_level == 0)
 	{
 		lprofT_tojson();
-	//lprofT_tojson2();
-	//lprofT_print();
+		//lprofT_tojson2();
 	}
-	/* writing a log may take too long to be computed with the function's time ...*/
-	/*lprofM_pause_total_time(S);
-	//info->local_time += function_call_time;
-	info->total_time += function_call_time;
-	
-	char* source = info->file_defined;
-	if (source[0] != '@') {
-		source = "(string)";
-	}
-	else {
-		formats(source);
-	}
-	char* name = info->function_name;
-
-	if (strlen(name) > MAX_FUNCTION_NAME_LENGTH) {
-		name = (char*)malloc(MAX_FUNCTION_NAME_LENGTH + 10);
-		name[0] = '\"';
-		strncpy(name + 1, info->function_name, MAX_FUNCTION_NAME_LENGTH);
-		name[MAX_FUNCTION_NAME_LENGTH] = '"';
-		name[MAX_FUNCTION_NAME_LENGTH + 1] = '\0';
-	}
-	formats(name);
-	*/
-// 	output("%d\t%s\t%s\t%d\t%d\t%f\t%f\n", S->stack_level, source, name,
-// 		info->line_defined, info->current_line,
-// 		info->local_time, info->total_time);
-	//if (S->stack_level == 0){
-		//lprofS_print();
-		//output("-------------------------------------------------------\n");
-	//}
 		
 	/* ... now it's ok to resume the timer */
 	if (S->stack_level != 0) {
@@ -201,14 +172,10 @@ lprofP_STATE* lprofP_init_core_profiler(const char *_out_filename, int isto_prin
     randstr[strlen(randstr)-1]='\0';
 
   sprintf(auxs, out_filename, randstr);
-  outf = fopen(auxs, "a");
+  outf = fopen(auxs, "w");
   if (!outf) {
     return 0;
   }
- 
-//   if (isto_printheader) {
-//     output("stack_level\tfile_defined\tfunction_name\tline_defined\tcurrent_line\tlocal_time\ttotal_time\n");
-//   }
 
   /* initialize the 'function_meter' */
   S = lprofM_init();
@@ -220,8 +187,7 @@ lprofP_STATE* lprofP_init_core_profiler(const char *_out_filename, int isto_prin
   return S;
 }
 
-void lprofP_close_core_profiler(lprofP_STATE* S) {
-  //lprofT_tojson();
+void lprofP_close_core_profiler(lprofP_STATE* S) {  
   lprofT_close();
   if (outf)
 	fclose(outf);

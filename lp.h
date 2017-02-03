@@ -1,10 +1,11 @@
-#pragma once
+﻿#pragma once
 #include <time.h>
 
 /*
-	��ƽ̨֧��
+	跨平台支持
 	2016-08-10 lennon.c
 */
+#pragma warning (disable:4100)
 #ifdef _MSC_VER
 	#include <windows.h>
 #else
