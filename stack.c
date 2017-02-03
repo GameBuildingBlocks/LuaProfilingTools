@@ -52,7 +52,7 @@ double dPreFrameTime = 0.0;
 LARGE_INTEGER time_maker_golbal_start;
 LARGE_INTEGER time_maker_golbal_stop;
 
-cJSON* treeTojson(lprofT_NODE* p,double* pdLuaConsuming,double* pdFunConsuming);
+cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming, double* pdFunConsuming);
 
 /*
 void output(const char *format, ...) {
