@@ -16,8 +16,10 @@ stack.c:
 #include <assert.h>
 #include "stack.h"
 #include "clocks.h"
-#include "cJSON.h"
 #include "output.h"
+#ifdef _MSC_VER
+#include <process.h>
+#endif
 /*
 #if defined (_WIN32)
 #include"pthread.h"
@@ -47,8 +49,6 @@ double dPreFrameTime = 0.0;
 LARGE_INTEGER time_maker_golbal_start;
 LARGE_INTEGER time_maker_golbal_stop;
 
-cJSON* treeTojson(lprofT_NODE* p, calltype precalltype, double* pdLuaConsuming,double* pdFunConsuming);
-void freeTree(lprofT_NODE* p);
 
 void formats(char *s) {
 	int i;
@@ -82,7 +82,7 @@ void lprofT_addchild(lprofT_NODE* pParent, lprofT_NODE* pChild)
 		pChild->pParent = pParent;
 		pParent->nChildCount++;
 		if (pChild && pChild->pNode && pParent->pNode)
-			pChild->pNode->interval_time = lprofC_get_seconds2(&pParent->pNode->time_maker_local_time_begin);
+			pChild->pNode->interval_time = (float)lprofC_get_seconds2(&pParent->pNode->time_maker_local_time_begin);
 	}
 }
 
@@ -91,7 +91,7 @@ void lprofT_pop()
 	if (pTreeNode)
 	{
 		assert(pTreeNode->pNode);
-		pTreeNode->pNode->local_time = lprofC_get_seconds2(&pTreeNode->pNode->time_maker_local_time_begin);
+		pTreeNode->pNode->local_time = (float)lprofC_get_seconds2(&pTreeNode->pNode->time_maker_local_time_begin);
 		lprofC_start_timer2(&pTreeNode->pNode->time_maker_local_time_end);
 		if (pTreeNode->pNode->stack_level <= 1)
 			//dTotalTimeConsuming += pTreeNode->pNode->local_time;
@@ -204,19 +204,16 @@ void lprofT_free(lprofT_NODE* p)
 
 void lprofT_tojson()
 {
+	char *jstring = NULL;
+	double dLuaConsuming = 0.0;
+	double dFunConsuming = 0.0;
 	if (pTreeRoot)
 	{
-		double dLuaConsuming = 0.0;
-		double dFunConsuming = 0.0;
 		cJSON* root = treeTojson(pTreeRoot,none,&dLuaConsuming,&dFunConsuming);
 		freeTree(pTreeRoot);
-		char *jstring = cJSON_Print(root);
-		//output(jstring);
-		//output(",");
+		jstring = cJSON_Print(root);
 		lprofP_addData(jstring);
 		cJSON_Delete(root);
-		//free(jstring);
-		//nTotalCall = 0;
 		dPreFrameLuaConsuming += dLuaConsuming;
 		dPreFrameFunConsuming += dFunConsuming;
 		pTreeRoot = NULL;
@@ -311,9 +308,10 @@ cJSON* treeTojson(lprofT_NODE* p, calltype precalltype,double* pdLuaConsuming, d
 
 void freeTree(lprofT_NODE* p)
 {
+	int i = 0;
 	if (p)
 	{
-		for (int i = 0;i < p->nChildCount;i++)
+		for (i = 0;i < p->nChildCount;i++)
 		{
 			freeTree(&p->pChild[i]);
 		}

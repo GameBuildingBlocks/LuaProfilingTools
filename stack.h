@@ -14,6 +14,7 @@ stack.h:
 
 #include <time.h>
 #include "lp.h"
+#include "cJSON.h"
 
 #define MAX_FUNCTION_NAME_LENGTH 200
 #define MAX_OUTPUT_MESSAGE_LENGTH 100
@@ -83,5 +84,6 @@ void lprofT_tojson();
 //void lprofT_tojson(lprofT_NODE* p);
 //void lprofT_tojson_thread();
 void lprofT_close();
-
+cJSON* treeTojson(lprofT_NODE* p, calltype precalltype, double* pdLuaConsuming, double* pdFunConsuming);
+void freeTree(lprofT_NODE* p);
 #endif

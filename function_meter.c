@@ -54,7 +54,7 @@ static lprofS_STACK_RECORD leave_ret;   /* used in 'leave_function' */
 static void compute_local_time(lprofS_STACK_RECORD *e) {
   ASSERT(e, "local time null");
   //e->local_time += lprofC_get_seconds(e->time_marker_function_local_time);
-  e->local_time += lprofC_get_seconds2(&e->time_maker_local_time_begin);
+  e->local_time += (float)lprofC_get_seconds2(&e->time_maker_local_time_begin);
 }
 
 
