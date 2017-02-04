@@ -16,9 +16,14 @@ public class Lua
 
     public LuaSvr m_LuaSvr = null;
     private string m_luaProfilerSessionsPath = Path.Combine(Application.temporaryCachePath,"LuaProfilerSessions");
-    private string m_strTime = Application.bundleIdentifier + "." + System.DateTime.Now.Year.ToString() + "-" + System.DateTime.Now.Month.ToString() + "-" + System.DateTime.Now.Day.ToString() + "-" + System.DateTime.Now.Hour.ToString() + "-" + System.DateTime.Now.Minute.ToString() + "-" + System.DateTime.Now.Second.ToString();
+    //private string m_strTime = Application.bundleIdentifier + "." + System.DateTime.Now.Year.ToString() + "-" + System.DateTime.Now.Month.ToString() + "-" + System.DateTime.Now.Day.ToString() + "-" + System.DateTime.Now.Hour.ToString() + "-" + System.DateTime.Now.Minute.ToString() + "-" + System.DateTime.Now.Second.ToString();
 
     bool _networkAvailable = false;
+
+    public string GetTimestamp()
+    {
+        return Application.bundleIdentifier + "." + System.DateTime.Now.Year.ToString() + "-" + System.DateTime.Now.Month.ToString() + "-" + System.DateTime.Now.Day.ToString() + "-" + System.DateTime.Now.Hour.ToString() + "-" + System.DateTime.Now.Minute.ToString() + "-" + System.DateTime.Now.Second.ToString();
+    }
     public static Lua Instance
     {
         get
@@ -58,7 +63,7 @@ public class Lua
         m_LuaSvr.start("main");
 
         LuaDLL.init_profiler(m_LuaSvr.luaState.L);
-        m_luaProfilerSessionsPath = Path.Combine(m_luaProfilerSessionsPath,m_strTime);
+        m_luaProfilerSessionsPath = Path.Combine(m_luaProfilerSessionsPath, GetTimestamp());
         Debug.Log(m_luaProfilerSessionsPath);
     }
     
@@ -69,7 +74,7 @@ public class Lua
         {
             Directory.CreateDirectory(m_luaProfilerSessionsPath);
         }
-        string file = Path.Combine(m_luaProfilerSessionsPath, m_strTime + ".json");
+        string file = Path.Combine(m_luaProfilerSessionsPath, GetTimestamp() + ".json");
         m_LuaSvr.luaState.getFunction("profiler_start").call(file);
 
         if (!LuaDLL.isregister_callback())
