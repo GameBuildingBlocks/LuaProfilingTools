@@ -39,7 +39,7 @@ using UnityEngine;
 
          List<string> sessionMsgList = new List<string>();
          
-         float  HanleSessionTime = 0.0f;
+         float  HandleSessionTime = 0.0f;
 
          HanoiData m_data = new HanoiData();
          HanoiNode m_picked;
@@ -52,7 +52,7 @@ using UnityEngine;
          [SerializeField]
          string lastLoginIP = ipDefaultTextField;
          static string LuaProfilerSessionsPath = Path.Combine(Application.temporaryCachePath, "LuaProfilerSessions");
-        
+         ThreadCombineJson m_threadCombineJson;
          [MenuItem(PAEditorConst.MenuPath + "/LuaProfilerWindow")]
          static void Create()
          {
@@ -79,13 +79,21 @@ using UnityEngine;
                  NetManager.Instance = new NetManager();
                  NetManager.Instance.RegisterCmdHandler(eNetCmd.SV_SendLuaProfilerMsg, NetHandle_SendLuaProfilerMsg);
                  NetManager.Instance.RegisterCmdHandler(eNetCmd.SV_StartLuaProfilerMsg, NetHandle_StartLuaProfilerMsg);
+                 NetManager.Instance.LogicallyDisconnected += OnDisconnectd;
              }
              ClearHanoiRoot();
          }
 
+         void OnDisconnectd(object sender, EventArgs e)
+         {
+             HandleSessionTime = 0;
+         }
+
+
          void OnEnable()
          {
              InitNet();
+             m_threadCombineJson = new ThreadCombineJson(m_data);
          }
 
          public bool NetHandle_StartLuaProfilerMsg(eNetCmd cmd, UsCmd c)
@@ -102,38 +110,19 @@ using UnityEngine;
              return true;
          }
 
-         public void handleMsgAsyn(object o)
-         {
-             //var watch = new System.Diagnostics.Stopwatch();
-             //watch.Start();
-
-             StringBuilder strBuilder = new StringBuilder("");
-             foreach (string msg in (string[])o)
-             {
-                 strBuilder.Append(msg);
-                 strBuilder.Append(",");
-             }
-             var result = new JSONObject("[$$]".Replace("$$",strBuilder.ToString()));
-             var resovleJsonResult =m_data.handleSessionJsonObj(result);
-             if (resovleJsonResult != null)
-                 sessionJsonObj.writeResovleJsonResult(resovleJsonResult);
-             //watch.Stop();
-             //UnityEngine.Debug.LogFormat("handleMsgAsyn  time {0}", watch.ElapsedMilliseconds);
-         }
-
-
          void Update()
          {
              doTranslationAnimation();
 
-             if (m_data != null &&sessionMsgList.Count>0 &&Time.realtimeSinceStartup - HanleSessionTime >= 1.0f)
+             if (m_data != null &&sessionMsgList.Count>0 &&Time.realtimeSinceStartup - HandleSessionTime >= 1.0f)
              {
-                HanleSessionTime = Time.realtimeSinceStartup;
-              
-                Thread mThread = new Thread(new ParameterizedThreadStart(handleMsgAsyn));
-                mThread.Start(sessionMsgList.ToArray());
-                sessionMsgList.Clear();
-
+                HandleSessionTime = Time.realtimeSinceStartup;
+                if (m_threadCombineJson.GetThreadState()== ThreadState.WaitSleepJoin)
+                {
+                    m_threadCombineJson.AcceptJson(sessionMsgList);
+                    sessionMsgList.Clear();
+                }
+ 
                  if (sessionJsonObj.readerFlag)
                  {
                      ResovleSessionJsonResult result = sessionJsonObj.readResovleJsonResult();
@@ -584,6 +573,52 @@ using UnityEngine;
              }
              return null;
          }
+
+         private class ThreadCombineJson
+         {
+             private List<string> jsonStrPool = new List<string>();
+             private Thread mThread;
+             private HanoiData m_data;
+             public ThreadCombineJson(HanoiData hanoiData)
+             {
+                 m_data = hanoiData;
+                 mThread = new Thread(new ThreadStart(HandleMsgAsyn));
+                 mThread.Start();
+             }
+
+             public ThreadState GetThreadState()
+             {
+                 return mThread.ThreadState;
+             }
+
+             public void AcceptJson(List<string> list)
+             {
+                 jsonStrPool.AddRange(list);
+             }
+
+             public void HandleMsgAsyn()
+             {
+                 while (true)
+                 {
+                     StringBuilder strBuilder = new StringBuilder("");
+                     if (jsonStrPool.Count > 0)
+                     {
+                         foreach (string msg in jsonStrPool)
+                         {
+                             strBuilder.Append(msg);
+                             strBuilder.Append(",");
+                         }
+                         jsonStrPool.Clear();
+                         var result = new JSONObject("[$$]".Replace("$$", strBuilder.ToString()));
+                         var resovleJsonResult = m_data.handleSessionJsonObj(result);
+                         if (resovleJsonResult != null)
+                             sessionJsonObj.writeResovleJsonResult(resovleJsonResult);
+                     }
+                     Thread.Sleep(100);
+                 }
+             }
+         }
+
 
          public class SessionJsonObj
          {
