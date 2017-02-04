@@ -28,3 +28,9 @@ sysinfo.txt
 # Builds
 *.apk
 *.unitypackage
+/port-slua-1.2/slua/Windows/slua/Luac53/x64
+/port-slua-1.2/slua/Windows/slua/lua53/x64
+/port-slua-1.2/slua/Windows/slua/slua.VC.db
+/port-slua-1.2/slua/Windows/slua/slua.sdf
+/port-slua-1.2/slua/Windows/slua/slua/x64
+/port-slua-1.2/slua/Windows/slua/x64
