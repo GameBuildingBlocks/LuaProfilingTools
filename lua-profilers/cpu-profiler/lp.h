@@ -24,6 +24,8 @@
 	#define NONLOCK_QUEUE_SIZE (5000000)
 #endif
 
+#if !defined(LUAGETP)
 #define lua_getuservalue 
 #define lua_rawgetp
 #define lua_rawsetp
+#endif
