@@ -13,7 +13,7 @@ lprof_PREVNODE sPrevNode = { 0,0 };
 
 lprofP_OUTPUT pOutputHead = NULL;
 lprofP_OUTPUT pOutputTail = NULL;
-const int nOutputBufferSize = 1;
+const int nOutputBufferSize = (1024*5);
 char* pOutputBuffer = NULL;
 int nBufferWrited = 0;
 
