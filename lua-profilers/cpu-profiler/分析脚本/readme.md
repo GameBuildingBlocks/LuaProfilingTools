@@ -1,6 +1,6 @@
 # 将数据提交到WEB端分析
 
-* python /home/lijianjun/build_luaperf.py --file luaprofiler.txt --notdebugging
+* python build_luaperf.py --file luaprofiler.txt --notdebugging
 * 结束后会出现如下界面
 
 
