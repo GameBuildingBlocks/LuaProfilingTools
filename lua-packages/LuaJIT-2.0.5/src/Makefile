@@ -468,7 +468,7 @@ LJCORE_O= lj_gc.o lj_err.o lj_char.o lj_bc.o lj_obj.o \
 	  lj_ctype.o lj_cdata.o lj_cconv.o lj_ccall.o lj_ccallback.o \
 	  lj_carith.o lj_clib.o lj_cparse.o \
 	  lj_lib.o lj_alloc.o lib_aux.o \
-	  $(LJLIB_O) lib_init.o
+	  $(LJLIB_O) lib_init.o lj_mem_trace.o
 
 LJVMCORE_O= $(LJVM_O) $(LJCORE_O)
 LJVMCORE_DYNO= $(LJVMCORE_O:.o=_dyn.o)
@@ -480,8 +480,10 @@ LUAJIT_O= luajit.o
 LUAJIT_A= libluajit.a
 LUAJIT_SO= libluajit.so
 LUAJIT_T= luajit
+LUAJIT_TEST_O= luajittest.o
+LUAJIT_TEST_T = luajittest
 
-ALL_T= $(LUAJIT_T) $(LUAJIT_A) $(LUAJIT_SO) $(HOST_T)
+ALL_T= $(LUAJIT_T) $(LUAJIT_TEST_T) $(LUAJIT_A) $(LUAJIT_SO) $(HOST_T)
 ALL_HDRGEN= lj_bcdef.h lj_ffdef.h lj_libdef.h lj_recdef.h lj_folddef.h \
 	    host/buildvm_arch.h
 ALL_GEN= $(LJVM_S) $(ALL_HDRGEN) $(LIB_VMDEFP)
@@ -494,7 +496,7 @@ ALL_RM= $(ALL_T) $(ALL_GEN) *.o host/*.o $(WIN_RM)
 
 # Mixed mode defaults.
 TARGET_O= $(LUAJIT_A)
-TARGET_T= $(LUAJIT_T) $(LUAJIT_SO)
+TARGET_T= $(LUAJIT_T) $(LUAJIT_TEST_T) $(LUAJIT_SO)
 TARGET_DEP= $(LIB_VMDEF) $(LUAJIT_SO)
 
 ifeq (Windows,$(TARGET_SYS))
@@ -502,6 +504,7 @@ ifeq (Windows,$(TARGET_SYS))
   LJVM_MODE= peobj
   LJVM_BOUT= $(LJVM_O)
   LUAJIT_T= luajit.exe
+  LUAJIT_TEST_T= luajittext.ext
   ifeq (cygwin,$(HOST_MSYS))
     LUAJIT_SO= cyg$(TARGET_DLLNAME)
   else
@@ -660,6 +663,10 @@ $(LUAJIT_O):
 	$(E) "CC        $@"
 	$(Q)$(TARGET_STCC) $(TARGET_ACFLAGS) -c -o $@ $<
 
+  $(LUAJIT_TEST_O): luajittest.c
+	$(E) "CC        $@"
+	$(Q)$(TARGET_STCC) $(TARGET_ACFLAGS) -c -o $@ $<
+
 $(HOST_O): %.o: %.c
 	$(E) "HOSTCC    $@"
 	$(Q)$(HOST_CC) $(HOST_ACFLAGS) -c -o $@ $<
@@ -685,5 +692,11 @@ $(LUAJIT_T): $(TARGET_O) $(LUAJIT_O) $(TARGET_DEP)
 	$(Q)$(TARGET_LD) $(TARGET_ALDFLAGS) -o $@ $(LUAJIT_O) $(TARGET_O) $(TARGET_ALIBS)
 	$(Q)$(TARGET_STRIP) $@
 	$(E) "OK        Successfully built LuaJIT"
+
+$(LUAJIT_TEST_T): $(LUAJIT_TEST_O) $(TARGET_O) $(LUAJIT_O) $(TARGET_DEP)
+	$(E) "DYNLINK      $@"
+	$(Q)$(TARGET_LD) $(TARGET_ALDFLAGS) -o $@ $(LUAJIT_TEST_O) $(TARGET_O) $(TARGET_ALIBS)
+	$(Q)$(TARGET_STRIP) $@
+	$(E) "OK        Successfully built LuaJITTest"
 
 ##############################################################################

@@ -28,9 +28,11 @@
 #define _GNU_SOURCE
 #endif
 
+#include <stdio.h>
 #include "lj_def.h"
 #include "lj_arch.h"
 #include "lj_alloc.h"
+#include "lj_mem_trace.h"
 
 #ifndef LUAJIT_USE_SYSMALLOC
 
@@ -102,6 +104,7 @@ static LJ_AINLINE void *CALL_MMAP(size_t size)
   void *ptr = NULL;
   long st = ntavm(INVALID_HANDLE_VALUE, &ptr, NTAVM_ZEROBITS, &size,
 		  MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    lj_update_trace_memory(ptr, size);
   SetLastError(olderr);
   return st == 0 ? ptr : MFAIL;
 }
@@ -113,6 +116,7 @@ static LJ_AINLINE void *DIRECT_MMAP(size_t size)
   void *ptr = NULL;
   long st = ntavm(INVALID_HANDLE_VALUE, &ptr, NTAVM_ZEROBITS, &size,
 		  MEM_RESERVE|MEM_COMMIT|MEM_TOP_DOWN, PAGE_READWRITE);
+  lj_update_trace_memory(ptr, size);
   SetLastError(olderr);
   return st == 0 ? ptr : MFAIL;
 }
@@ -126,6 +130,7 @@ static LJ_AINLINE void *CALL_MMAP(size_t size)
 {
   DWORD olderr = GetLastError();
   void *ptr = VirtualAlloc(0, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+  lj_update_trace_memory(ptr, size);
   SetLastError(olderr);
   return ptr ? ptr : MFAIL;
 }
@@ -136,6 +141,7 @@ static LJ_AINLINE void *DIRECT_MMAP(size_t size)
   DWORD olderr = GetLastError();
   void *ptr = VirtualAlloc(0, size, MEM_RESERVE|MEM_COMMIT|MEM_TOP_DOWN,
 			   PAGE_READWRITE);
+  lj_update_trace_memory(ptr, size);
   SetLastError(olderr);
   return ptr ? ptr : MFAIL;
 }
@@ -190,6 +196,7 @@ static LJ_AINLINE void *CALL_MMAP(size_t size)
 {
   int olderr = errno;
   void *ptr = mmap((void *)MMAP_REGION_START, size, MMAP_PROT, MAP_32BIT|MMAP_FLAGS, -1, 0);
+  lj_update_trace_memory(ptr, size);
   errno = olderr;
   return ptr;
 }
@@ -231,6 +238,7 @@ static LJ_AINLINE void *CALL_MMAP(size_t size)
 #endif
   for (;;) {
     void *p = mmap((void *)alloc_hint, size, MMAP_PROT, MMAP_FLAGS, -1, 0);
+    lj_update_trace_memory(p, size);
     if ((uintptr_t)p >= MMAP_REGION_START &&
 	(uintptr_t)p + size < MMAP_REGION_END) {
       alloc_hint = (uintptr_t)p + size;
@@ -263,6 +271,7 @@ static LJ_AINLINE void *CALL_MMAP(size_t size)
 {
   int olderr = errno;
   void *ptr = mmap(NULL, size, MMAP_PROT, MMAP_FLAGS, -1, 0);
+  lj_update_trace_memory(ptr, size);
   errno = olderr;
   return ptr;
 }
@@ -787,6 +796,78 @@ static mchunkptr direct_resize(mchunkptr oldp, size_t nb)
   return NULL;
 }
 
+/* -------------------------- block management -------------------------- */
+#define DEFAULT_BLOCK_GRANULARITY (DEFAULT_GRANULARITY)
+#define DEFAULT_BLOCK_RESERVE_SIZE (DEFAULT_BLOCK_GRANULARITY * 4000)
+
+static char* block_startptr = NULL;
+static char* block_freeptr = NULL;
+static char* block_endptr = NULL;
+static int block_request_count = 0;
+static int block_use_count = 0;
+
+#define binuse(p) ((block_startptr < p) && (p < block_endptr))
+
+static void lj_alloc_create_block()
+{
+  FILE *fpre_alloc = fopen("pre-alloc", "r");
+  if (NULL != fpre_alloc) {
+    char *baseptr = (char*)CALL_MMAP(DEFAULT_BLOCK_RESERVE_SIZE);
+    if (NULL != baseptr) {
+      block_startptr = baseptr;
+      block_freeptr = baseptr;
+      block_endptr = baseptr + (DEFAULT_BLOCK_RESERVE_SIZE - DEFAULT_BLOCK_GRANULARITY);
+      *(size_t*)block_endptr =  0;
+      while (baseptr < block_endptr) {
+        *(size_t*)baseptr = (size_t)(baseptr + DEFAULT_BLOCK_GRANULARITY);
+        baseptr += DEFAULT_BLOCK_GRANULARITY;
+      }
+    }
+    fclose(fpre_alloc);
+  }
+}
+
+static void lj_alloc_destroy_block() {
+  if (NULL != block_startptr) {
+    CALL_MUNMAP((void*)block_startptr, DEFAULT_BLOCK_RESERVE_SIZE);
+  }
+  printf("MEM-BLOCK-REQUEST:%d, MEM-BLOCK-USE:%d\r\n", block_request_count, block_use_count);
+}
+
+static char *lj_alloc_malloc_block(size_t size)
+{
+  ++block_request_count;
+  if (DEFAULT_GRANULARITY == size && NULL != block_freeptr) {
+    char* ptr = block_freeptr;
+    block_freeptr = (char*)(*(size_t*)block_freeptr);
+    ++block_use_count;
+    return ptr;
+  }
+  return (char*)CALL_MMAP(size);
+}
+
+static int lj_alloc_free_block(void *p, size_t size)
+{
+    size_t free_size = 0;
+    char *ptr = (char*)p;
+  #ifdef DEBUG
+  #include <assert.h>
+    if (binuse(ptr) && size % DEFAULT_BLOCK_GRANULARITY) {
+      assert(0);
+    }
+  #endif
+    while (binuse(ptr)) {
+      *(size_t*)(ptr) = (size_t)block_freeptr;
+      block_freeptr = ptr;
+      ptr += DEFAULT_BLOCK_GRANULARITY;
+      free_size += DEFAULT_GRANULARITY;
+    }
+  #ifdef DEBUG
+    assert(free_size <= size);
+  #endif
+  return free_size == size ? 0 : CALL_MUNMAP(ptr, size - free_size);
+}
+
 /* -------------------------- mspace management -------------------------- */
 
 /* Initialize top chunk and its size */
@@ -914,7 +995,7 @@ static void *alloc_sys(mstate m, size_t nb)
     size_t req = nb + TOP_FOOT_SIZE + SIZE_T_ONE;
     size_t rsize = granularity_align(req);
     if (LJ_LIKELY(rsize > nb)) { /* Fail if wraps around zero */
-      char *mp = (char *)(CALL_MMAP(rsize));
+      char *mp = lj_alloc_malloc_block(rsize);
       if (mp != CMFAIL) {
 	tbase = mp;
 	tsize = rsize;
@@ -983,7 +1064,7 @@ static size_t release_unused_segments(mstate m)
 	} else {
 	  unlink_large_chunk(m, tp);
 	}
-	if (CALL_MUNMAP(base, size) == 0) {
+	if (lj_alloc_free_block(base, size) == 0) {
 	  released += size;
 	  /* unlink obsoleted record */
 	  sp = pred;
@@ -1020,7 +1101,7 @@ static int alloc_trim(mstate m, size_t pad)
 	size_t newsize = sp->size - extra;
 	/* Prefer mremap, fall back to munmap */
 	if ((CALL_MREMAP(sp->base, sp->size, newsize, CALL_MREMAP_NOMOVE) != MFAIL) ||
-	    (CALL_MUNMAP(sp->base + newsize, extra) == 0)) {
+	    (lj_alloc_free_block(sp->base + newsize, extra) == 0)) {
 	  released = extra;
 	}
       }
@@ -1146,6 +1227,7 @@ void *lj_alloc_create(void)
   size_t tsize = DEFAULT_GRANULARITY;
   char *tbase;
   INIT_MMAP();
+  lj_alloc_create_block();
   tbase = (char *)(CALL_MMAP(tsize));
   if (tbase != CMFAIL) {
     size_t msize = pad_request(sizeof(struct malloc_state));
@@ -1173,8 +1255,9 @@ void lj_alloc_destroy(void *msp)
     char *base = sp->base;
     size_t size = sp->size;
     sp = sp->next;
-    CALL_MUNMAP(base, size);
+    lj_alloc_free_block(base, size);
   }
+  lj_alloc_destroy_block();
 }
 
 static LJ_NOINLINE void *lj_alloc_malloc(void *msp, size_t nsize)
@@ -1272,7 +1355,7 @@ static LJ_NOINLINE void *lj_alloc_free(void *msp, void *ptr)
       if ((prevsize & IS_DIRECT_BIT) != 0) {
 	prevsize &= ~IS_DIRECT_BIT;
 	psize += prevsize + DIRECT_FOOT_PAD;
-	CALL_MUNMAP((char *)p - prevsize, psize);
+	lj_alloc_free_block((char *)p - prevsize, psize);
 	return NULL;
       } else {
 	mchunkptr prev = chunk_minus_offset(p, prevsize);

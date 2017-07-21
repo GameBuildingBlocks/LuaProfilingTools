@@ -26,6 +26,7 @@
 #include "lj_vm.h"
 #include "lj_lex.h"
 #include "lj_alloc.h"
+#include "lj_mem_trace.h"
 
 /* -- Stack handling ------------------------------------------------------ */
 
@@ -235,6 +236,7 @@ LUA_API void lua_close(lua_State *L)
 {
   global_State *g = G(L);
   int i;
+  lj_end_trace_memory();
   L = mainthread(g);  /* Only the main thread can be closed. */
   lj_func_closeuv(L, tvref(L->stack));
   lj_gc_separateudata(g, 1);  /* Separate udata which have GC metamethods. */
