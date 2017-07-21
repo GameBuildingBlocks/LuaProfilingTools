@@ -797,6 +797,7 @@ static mchunkptr direct_resize(mchunkptr oldp, size_t nb)
 }
 
 /* -------------------------- block management -------------------------- */
+#ifndef LJ_64
 #define DEFAULT_BLOCK_GRANULARITY (DEFAULT_GRANULARITY)
 #define DEFAULT_BLOCK_RESERVE_SIZE (DEFAULT_BLOCK_GRANULARITY * 4000)
 
@@ -867,6 +868,12 @@ static int lj_alloc_free_block(void *p, size_t size)
   #endif
   return free_size == size ? 0 : CALL_MUNMAP(ptr, size - free_size);
 }
+#else
+static void lj_alloc_create_block() {}
+static void lj_alloc_destroy_block() {}
+static char *lj_alloc_malloc_block(size_t size) { return (char*)CALL_MMAP(size); }
+static int lj_alloc_free_block(void *p, size_t size) { return CALL_MUNMAP(p, size); }
+#endif // !LJ_64
 
 /* -------------------------- mspace management -------------------------- */
 
