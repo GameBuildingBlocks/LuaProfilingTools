@@ -797,7 +797,7 @@ static mchunkptr direct_resize(mchunkptr oldp, size_t nb)
 }
 
 /* -------------------------- block management -------------------------- */
-#ifndef LJ_64
+
 #define DEFAULT_BLOCK_GRANULARITY (DEFAULT_GRANULARITY)
 #define DEFAULT_BLOCK_RESERVE_SIZE (DEFAULT_BLOCK_GRANULARITY * 4000)
 
@@ -851,29 +851,17 @@ static int lj_alloc_free_block(void *p, size_t size)
 {
     size_t free_size = 0;
     char *ptr = (char*)p;
-  #ifdef DEBUG
-  #include <assert.h>
     if (binuse(ptr) && size % DEFAULT_BLOCK_GRANULARITY) {
-      assert(0);
+      return 1;
     }
-  #endif
-    while (binuse(ptr)) {
+    while (binuse(ptr) && (free_size + DEFAULT_BLOCK_GRANULARITY <= size)) {
       *(size_t*)(ptr) = (size_t)block_freeptr;
       block_freeptr = ptr;
       ptr += DEFAULT_BLOCK_GRANULARITY;
       free_size += DEFAULT_GRANULARITY;
     }
-  #ifdef DEBUG
-    assert(free_size <= size);
-  #endif
   return free_size == size ? 0 : CALL_MUNMAP(ptr, size - free_size);
 }
-#else
-static void lj_alloc_create_block() {}
-static void lj_alloc_destroy_block() {}
-static char *lj_alloc_malloc_block(size_t size) { return (char*)CALL_MMAP(size); }
-static int lj_alloc_free_block(void *p, size_t size) { return CALL_MUNMAP(p, size); }
-#endif // !LJ_64
 
 /* -------------------------- mspace management -------------------------- */
 
@@ -1362,7 +1350,7 @@ static LJ_NOINLINE void *lj_alloc_free(void *msp, void *ptr)
       if ((prevsize & IS_DIRECT_BIT) != 0) {
 	prevsize &= ~IS_DIRECT_BIT;
 	psize += prevsize + DIRECT_FOOT_PAD;
-	lj_alloc_free_block((char *)p - prevsize, psize);
+	CALL_MUNMAP((char *)p - prevsize, psize);
 	return NULL;
       } else {
 	mchunkptr prev = chunk_minus_offset(p, prevsize);
