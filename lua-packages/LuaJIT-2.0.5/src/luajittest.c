@@ -31,6 +31,27 @@ void align_block_test(lua_State *L, int max_size)
   int i = 0;
   int istack = 0;
 
+  printf("%s\r\n", "4b align!");
+  {
+    const int align_size_4b = 4;
+    const int count_4b = max_size / align_size_4b;
+    char *str_4b = (char*)malloc(align_size_4b);
+    str_4b[align_size_4b - 1] = 0;
+    for (i =0, istack = 0; i < count_4b; ++i, istack += 2) {
+      try_lua_call(L);
+      lua_pushinteger(L, i);
+      memset(str_4b, i, align_size_4b - 1);
+      lua_pushstring(L, str_4b);
+      if (max_stack_size < istack) {
+          lua_settop(L, 0);
+          istack = 0;
+      }
+    }
+    istack = 0;
+    lua_settop(L, 0);
+    free(str_4b);
+  }
+
   printf("%s\r\n", "8b align!");
   {
     const int align_size_8b = 8;
@@ -418,6 +439,28 @@ void noalign_block_test(lua_State *L, int max_size)
   // luajit max stack 65500
 
   srand(time(0));
+
+  printf("%s\r\n", "4b noalign!");
+  {
+    min_size = 1;
+    for (i =0, istack = 0; i < max_size; istack += 2) {
+      try_lua_call(L);
+      const int align_size_4b = max(rand() % (8), min_size);
+      i += align_size_4b;
+      char *str_4b = (char*)malloc(align_size_4b);
+      memset(str_4b, i, align_size_4b);
+      str_4b[align_size_4b - 1] = 0;
+      lua_pushinteger(L, i);
+      lua_pushstring(L, str_4b);
+      free(str_4b);
+      if (max_stack_size < istack) {
+          lua_settop(L, 0);
+          istack = 0;
+      }
+    }
+    istack = 0;
+    lua_settop(L, 0);
+  }
 
   printf("%s\r\n", "8b noalign!");
   {
@@ -817,6 +860,27 @@ void align_block_test_shared(lua_State *L, int max_size)
   int i = 0;
   int istack = 0;
 
+  printf("%s\r\n", "4b align shared!");
+  {
+    const int align_size_4b = 8;
+    const int count_4b = max_size / align_size_4b;
+    char *str_4b = (char*)malloc(align_size_4b);
+    memset(str_4b, 1, align_size_4b - 1);
+    str_4b[align_size_4b - 1] = 0;
+    for (i =0, istack = 0; i < count_4b; ++i, istack += 2) {
+      try_lua_call(L);
+      lua_pushinteger(L, i);
+      lua_pushstring(L, str_4b);
+      if (max_stack_size < istack) {
+          lua_settop(L, 0);
+          istack = 0;
+      }
+    }
+    istack = 0;
+    lua_settop(L, 0);
+    free(str_4b);
+  }
+
   printf("%s\r\n", "8b align shared!");
   {
     const int align_size_8b = 8;
@@ -1205,6 +1269,28 @@ void noalign_block_test_shared(lua_State *L, int max_size)
 
   srand(time(0));
 
+  printf("%s\r\n", "4b noalign shared!");
+  {
+    min_size = 1;
+    for (i =0, istack = 0; i < max_size; istack += 2) {
+      try_lua_call(L);
+      const int align_size_4b = max(rand() % (8), min_size);
+      i += align_size_4b;
+      char *str_8b = (char*)malloc(align_size_4b);
+      memset(str_8b, 1, align_size_4b);
+      str_8b[align_size_4b - 1] = 0;
+      lua_pushinteger(L, i);
+      lua_pushstring(L, str_8b);
+      free(str_8b);
+      if (max_stack_size < istack) {
+          lua_settop(L, 0);
+          istack = 0;
+      }
+    }
+    istack = 0;
+    lua_settop(L, 0);
+  }
+
   printf("%s\r\n", "8b noalign shared!");
   {
     min_size = 1;
@@ -1212,12 +1298,12 @@ void noalign_block_test_shared(lua_State *L, int max_size)
       try_lua_call(L);
       const int align_size_8b = max(rand() % (8), min_size);
       i += align_size_8b;
-      char *str_1k = (char*)malloc(align_size_8b);
-      memset(str_1k, 1, align_size_8b);
-      str_1k[align_size_8b - 1] = 0;
+      char *str_8b = (char*)malloc(align_size_8b);
+      memset(str_8b, 1, align_size_8b);
+      str_8b[align_size_8b - 1] = 0;
       lua_pushinteger(L, i);
-      lua_pushstring(L, str_1k);
-      free(str_1k);
+      lua_pushstring(L, str_8b);
+      free(str_8b);
       if (max_stack_size < istack) {
           lua_settop(L, 0);
           istack = 0;
@@ -1612,6 +1698,7 @@ int main(int argc, char **argv)
   // size_t test_count = 0;
   int start = 1;
   int step = 1;
+  clock_t start_time = clock();
 
 /*    while (test_count < max_test_count) { */
     for (i = start; i <= max_mb; i += step) {
@@ -1626,6 +1713,7 @@ int main(int argc, char **argv)
     } 
 /*   }  */
 
+  printf("use time:%lds\r\n", (clock() - start_time) / CLOCKS_PER_SEC);
   lua_close(L);
   return 0;
 }

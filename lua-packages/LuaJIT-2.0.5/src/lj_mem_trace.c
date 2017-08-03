@@ -147,7 +147,7 @@ static void flush_trace_info(mem_trace_info_t *trace_info)
     fprintf(mem_trace_file, "%d", trace_info->last_line_defined);
     fprintf(mem_trace_file, "%s", TRACE_FEILD_SEPERATOR);
 
-#ifdef x64
+#ifdef LJ_64
     fprintf(mem_trace_file, "%lu", trace_info->mem_size);
 #else
     fprintf(mem_trace_file, "%u", trace_info->mem_size);
@@ -299,7 +299,8 @@ void lj_start_trace_memory(lua_State *L, const char *file_name)
     char *home_path = getenv("HOMEPATH");
 #else
     char *home_path = getenv("HOME");
-    if (1 == strlen(home_path))
+    char *root_path = "/root";
+    if (0 == strcmp(root_path, home_path))
         home_path = "/home";
 #endif
 
