@@ -21,6 +21,7 @@
 #include "lj_state.h"
 #include "lj_trace.h"
 #include "lj_lib.h"
+#include "lj_mem_trace.h"
 
 #if LJ_TARGET_POSIX
 #include <sys/wait.h>
@@ -322,6 +323,7 @@ LUALIB_API lua_State *luaL_newstate(void)
 {
   lua_State *L = lua_newstate(mem_alloc, NULL);
   if (L) G(L)->panic = panic;
+  lj_start_trace_memory(L, NULL);
   return L;
 }
 
@@ -340,6 +342,7 @@ LUALIB_API lua_State *luaL_newstate(void)
   L = lua_newstate(lj_alloc_f, ud);
 #endif
   if (L) G(L)->panic = panic;
+  lj_start_trace_memory(L, NULL);
   return L;
 }
 
