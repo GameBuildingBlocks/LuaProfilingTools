@@ -27,10 +27,16 @@
 #if defined(__linux__) && !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
 #endif
-
+#include <stdio.h>
+#include <assert.h>
 #include "lj_def.h"
 #include "lj_arch.h"
 #include "lj_alloc.h"
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif // DEBUG
 
 #ifndef LUAJIT_USE_SYSMALLOC
 
@@ -65,6 +71,7 @@
  ((((size_t)(A) & CHUNK_ALIGN_MASK) == 0)? 0 :\
   ((MALLOC_ALIGNMENT - ((size_t)(A) & CHUNK_ALIGN_MASK)) & CHUNK_ALIGN_MASK))
 
+static uint64_t us_pre_alloc = 0;
 /* -------------------------- MMAP support ------------------------------- */
 
 #define MFAIL			((void *)(MAX_SIZE_T))
@@ -459,6 +466,9 @@ struct malloc_state {
   mchunkptr  smallbins[(NSMALLBINS+1)*2];
   tbinptr    treebins[NTREEBINS];
   msegment   seg;
+  char *block_startptr;
+  char *block_freeptr;
+  char *block_endptr;
 };
 
 typedef struct malloc_state *mstate;
@@ -787,6 +797,63 @@ static mchunkptr direct_resize(mchunkptr oldp, size_t nb)
   return NULL;
 }
 
+/* -------------------------- block management -------------------------- */
+
+#define DEFAULT_BLOCK_GRANULARITY (DEFAULT_GRANULARITY)
+#define DEFAULT_BLOCK_RESERVE_SIZE (DEFAULT_BLOCK_GRANULARITY * 4000)
+#define meminblock(ms, p) (((ms)->block_startptr <= (p)) && ((p) <= (ms)->block_endptr))
+
+static void lj_alloc_create_block(mstate ms)
+{
+  FILE *fpre_alloc = fopen("pre-alloc", "r");
+  if (NULL != fpre_alloc || 1 == us_pre_alloc ) {
+    char *baseptr = (char*)CALL_MMAP(DEFAULT_BLOCK_RESERVE_SIZE);
+    if (NULL != baseptr) {
+      ms->block_startptr = ms->block_freeptr = baseptr;
+      ms->block_endptr = baseptr + (DEFAULT_BLOCK_RESERVE_SIZE - DEFAULT_BLOCK_GRANULARITY);
+      *(size_t*)ms->block_endptr =  0;
+      while (baseptr < ms->block_endptr) {
+        *(size_t*)baseptr = (size_t)(baseptr + DEFAULT_BLOCK_GRANULARITY);
+        baseptr += DEFAULT_BLOCK_GRANULARITY;
+      }
+    }
+    fclose(fpre_alloc);
+  }
+}
+
+static void lj_alloc_destroy_block(char *ptr) {
+  if (NULL != ptr) {
+    CALL_MUNMAP((void*)ptr, DEFAULT_BLOCK_RESERVE_SIZE);
+  }
+}
+
+static char *lj_alloc_malloc_block(mstate ms, size_t size)
+{
+  if (DEFAULT_GRANULARITY == size && NULL != ms->block_freeptr) {
+    char* ptr = ms->block_freeptr;
+    ms->block_freeptr = (char*)(*(size_t*)ms->block_freeptr);
+    return ptr;
+  }
+  return (char*)CALL_MMAP(size);
+}
+
+static int lj_alloc_free_block(mstate ms, void *p, size_t size)
+{
+    char *ptr = (char*)p;
+    if (meminblock(ms, ptr)) {
+      assert(0 == size % DEFAULT_BLOCK_GRANULARITY);
+      int count = size / DEFAULT_BLOCK_GRANULARITY;
+      int i = 0;
+      for (; i < count; ++i) {
+        *(size_t*)(ptr) = (size_t)ms->block_freeptr;
+        ms->block_freeptr = ptr;
+        ptr += DEFAULT_BLOCK_GRANULARITY;
+      }
+      return 0;
+    }
+  return CALL_MUNMAP(ptr, size);
+}
+
 /* -------------------------- mspace management -------------------------- */
 
 /* Initialize top chunk and its size */
@@ -914,7 +981,7 @@ static void *alloc_sys(mstate m, size_t nb)
     size_t req = nb + TOP_FOOT_SIZE + SIZE_T_ONE;
     size_t rsize = granularity_align(req);
     if (LJ_LIKELY(rsize > nb)) { /* Fail if wraps around zero */
-      char *mp = (char *)(CALL_MMAP(rsize));
+      char *mp = lj_alloc_malloc_block(m, rsize);
       if (mp != CMFAIL) {
 	tbase = mp;
 	tsize = rsize;
@@ -927,18 +994,26 @@ static void *alloc_sys(mstate m, size_t nb)
     /* Try to merge with an existing segment */
     while (sp != 0 && tbase != sp->base + sp->size)
       sp = sp->next;
-    if (sp != 0 && segment_holds(sp, m->top)) { /* append */
+    if (sp != 0 &&
+      sp->base &&
+      sp->base + sp->size != m->block_startptr &&
+      sp->base != m->block_endptr &&
+      segment_holds(sp, m->top)) { /* append */
       sp->size += tsize;
       init_top(m, m->top, m->topsize + tsize);
     } else {
       sp = &m->seg;
       while (sp != 0 && sp->base != tbase + tsize)
-	sp = sp->next;
-      if (sp != 0) {
-	char *oldbase = sp->base;
-	sp->base = tbase;
-	sp->size += tsize;
-	return prepend_alloc(m, tbase, oldbase, nb);
+  sp = sp->next;
+      if (sp != 0 &&
+      sp->base &&
+      sp->base != m->block_startptr &&
+      tbase != m->block_endptr
+      ) {
+  char *oldbase = sp->base;
+  sp->base = tbase;
+  sp->size += tsize;
+  return prepend_alloc(m, tbase, oldbase, nb);
       } else {
 	add_segment(m, tbase, tsize);
       }
@@ -983,7 +1058,7 @@ static size_t release_unused_segments(mstate m)
 	} else {
 	  unlink_large_chunk(m, tp);
 	}
-	if (CALL_MUNMAP(base, size) == 0) {
+	if (lj_alloc_free_block(m, base, size) == 0) {
 	  released += size;
 	  /* unlink obsoleted record */
 	  sp = pred;
@@ -1019,8 +1094,8 @@ static int alloc_trim(mstate m, size_t pad)
 	  !has_segment_link(m, sp)) { /* can't shrink if pinned */
 	size_t newsize = sp->size - extra;
 	/* Prefer mremap, fall back to munmap */
-	if ((CALL_MREMAP(sp->base, sp->size, newsize, CALL_MREMAP_NOMOVE) != MFAIL) ||
-	    (CALL_MUNMAP(sp->base + newsize, extra) == 0)) {
+	if (!meminblock(m, sp->base) && ((CALL_MREMAP(sp->base, sp->size, newsize, CALL_MREMAP_NOMOVE) != MFAIL) ||
+	    CALL_MUNMAP(sp->base + newsize, extra) == 0)) {
 	  released = extra;
 	}
       }
@@ -1141,12 +1216,17 @@ static void *tmalloc_small(mstate m, size_t nb)
 
 /* ----------------------------------------------------------------------- */
 
+void void lj_start_prealloc()
+{
+	us_pre_malloc = 1;
+}
+
 void *lj_alloc_create(void)
 {
   size_t tsize = DEFAULT_GRANULARITY;
   char *tbase;
   INIT_MMAP();
-  tbase = (char *)(CALL_MMAP(tsize));
+  tbase = (char*)CALL_MMAP(tsize);
   if (tbase != CMFAIL) {
     size_t msize = pad_request(sizeof(struct malloc_state));
     mchunkptr mn;
@@ -1160,6 +1240,7 @@ void *lj_alloc_create(void)
     init_bins(m);
     mn = next_chunk(mem2chunk(m));
     init_top(m, mn, (size_t)((tbase + tsize) - (char *)mn) - TOP_FOOT_SIZE);
+    lj_alloc_create_block(m);
     return m;
   }
   return NULL;
@@ -1169,12 +1250,14 @@ void lj_alloc_destroy(void *msp)
 {
   mstate ms = (mstate)msp;
   msegmentptr sp = &ms->seg;
+  char *block_startptr = ms->block_startptr;
   while (sp != 0) {
     char *base = sp->base;
     size_t size = sp->size;
     sp = sp->next;
-    CALL_MUNMAP(base, size);
+    lj_alloc_free_block(ms, base, size);
   }
+  lj_alloc_destroy_block(block_startptr);
 }
 
 static LJ_NOINLINE void *lj_alloc_malloc(void *msp, size_t nsize)
