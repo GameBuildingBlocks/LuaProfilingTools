@@ -17,6 +17,7 @@
 
 #else
 	#include <pthread.h>
+	#include <unistd.h>
 	typedef struct timeval LARGE_INTEGER;
 	#define GETPID getpid
 	#define SLEEP_SHORT_TIME()  usleep(10)
